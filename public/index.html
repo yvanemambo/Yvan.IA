@@ -292,7 +292,9 @@ authForm.addEventListener("submit",async event=>{
   if(!response.ok)throw new Error(data.erreur||"Impossible de continuer.");
   if(data.access_token){
    accessToken=data.access_token;sessionStorage.setItem("yvan-ia-access-token",accessToken);
-   setAuthenticated({id:data.user?.id||"",email:data.user?.email||authEmail.value.trim()});authPassword.value="";authError.textContent="";
+   const meResponse=await fetch("/auth/moi",{headers:{Authorization:"Bearer "+accessToken},cache:"no-store"});
+   const meData=await meResponse.json();if(!meResponse.ok||!meData.utilisateur?.id)throw new Error("Impossible de vérifier le compte. Réessaie de te connecter.");
+   setAuthenticated(meData.utilisateur);authPassword.value="";authError.textContent="";
   }else if(authMode==="signup"){
    authError.textContent="Compte créé. Vérifie ta boîte e-mail pour confirmer ton adresse, puis connecte-toi.";
    setAuthMode("login");
