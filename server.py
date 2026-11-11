@@ -3,6 +3,7 @@ import os
 import time
 import uuid
 from collections import defaultdict, deque
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -25,6 +26,18 @@ MAX_MESSAGE_LENGTH = 8000
 RATE_WINDOW_SECONDS = 60
 RATE_LIMIT = 20
 requests_by_ip = defaultdict(deque)
+
+# Compteurs temporaires du processus : ils repartent à zéro au redémarrage
+# et ne représentent pas des statistiques globales ou persistantes.
+metrics = {
+    "started_at": datetime.now(timezone.utc).isoformat(),
+    "requests": 0,
+    "successes": 0,
+    "errors": 0,
+    "last_request_at": None,
+    "last_error_at": None,
+    "last_error": None,
+}
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 48 * 1024
@@ -136,18 +149,27 @@ def clean_history(raw):
         remaining -= len(content)
     return cleaned
 
+def admin_authorized():
+    admin_code = os.getenv("ADMIN_CODE", "").strip()
+    supplied = request.headers.get("X-Admin-Code", "")
+    return bool(admin_code and supplied and hmac.compare_digest(supplied, admin_code))
+
 @app.after_request
 def secure_headers(response):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("X-Frame-Options", "DENY")
-    if request.path.startswith("/commande") or request.path.startswith("/sante"):
+    if request.path.startswith(("/commande", "/sante", "/admin")):
         response.headers["Cache-Control"] = "no-store"
     return response
 
 @app.get("/")
 def home():
     return send_from_directory(PUBLIC, "index.html")
+
+@app.get("/admin")
+def admin_page():
+    return send_from_directory(PUBLIC, "admin.html")
 
 @app.get("/sante")
 def health():
@@ -161,7 +183,28 @@ def health():
         platform="Vercel" if IS_VERCEL else "local",
         gemini_configured=gemini_ready,
         access_configured=access_ready,
+        admin_configured=bool(os.getenv("ADMIN_CODE", "").strip()),
         ready=gemini_ready and access_ready,
+    )
+
+@app.get("/admin/metrics")
+def admin_metrics():
+    if not os.getenv("ADMIN_CODE", "").strip():
+        return jsonify(erreur="Le tableau de bord n'est pas configuré. Ajoute ADMIN_CODE dans Vercel."), 503
+    if not admin_authorized():
+        return jsonify(erreur="Code administrateur incorrect."), 401
+
+    gemini_ready = bool(os.getenv("GEMINI_API_KEY", "").strip() and MODEL)
+    return jsonify(
+        app="Yvan.IA",
+        provider="Gemini",
+        model=MODEL,
+        gemini_configured=gemini_ready,
+        access_configured=bool(os.getenv("MBO_CODE", "").strip()),
+        admin_configured=True,
+        platform="Vercel" if IS_VERCEL else "local",
+        metrics=dict(metrics),
+        metrics_scope="Ce processus uniquement : compteurs temporaires, remis à zéro lors d'un redémarrage ou d'un changement d'instance.",
     )
 
 @app.post("/commande")
@@ -185,10 +228,18 @@ def command():
 
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
+        metrics["errors"] += 1
+        metrics["last_error_at"] = datetime.now(timezone.utc).isoformat()
+        metrics["last_error"] = "Clé Gemini non configurée"
         return jsonify(erreur="La clé GEMINI_API_KEY n'est pas configurée dans Vercel."), 503
     if not MODEL:
+        metrics["errors"] += 1
+        metrics["last_error_at"] = datetime.now(timezone.utc).isoformat()
+        metrics["last_error"] = "Modèle Gemini non configuré"
         return jsonify(erreur="Configure GEMINI_MODEL avec un modèle Gemini disponible."), 503
 
+    metrics["requests"] += 1
+    metrics["last_request_at"] = datetime.now(timezone.utc).isoformat()
     previous = clean_history(data.get("historique"))
     contents = [
         types.Content(role=item["role"], parts=[types.Part.from_text(text=item["text"])])
@@ -213,14 +264,20 @@ def command():
         answer = (response.text or "").strip()
         if not answer:
             answer = "Je n'ai pas reçu de réponse exploitable. Peux-tu reformuler ta demande ?"
+        metrics["successes"] += 1
         return jsonify(reponse=answer)
     except Exception as exc:
         app.logger.exception("Erreur Gemini")
+        metrics["errors"] += 1
+        metrics["last_error_at"] = datetime.now(timezone.utc).isoformat()
         message = str(exc).lower()
         if "api_key_invalid" in message or "invalid api key" in message or "unauthorized" in message:
+            metrics["last_error"] = "Clé Gemini invalide ou refusée"
             return jsonify(erreur="La clé Gemini semble invalide. Vérifie GEMINI_API_KEY dans Vercel."), 502
         if "not_found" in message or "404" in message or ("model" in message and "not" in message):
+            metrics["last_error"] = "Modèle Gemini introuvable ou indisponible"
             return jsonify(erreur="Le modèle Gemini configuré est introuvable ou indisponible. Vérifie GEMINI_MODEL."), 502
+        metrics["last_error"] = "Erreur du fournisseur Gemini"
         return jsonify(erreur="Gemini n'a pas pu répondre. Vérifie la clé et les journaux du projet Vercel, puis réessaie."), 502
 
 @app.errorhandler(413)
