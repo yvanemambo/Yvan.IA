@@ -3,87 +3,158 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0b0815">
-<meta name="description" content="Yvan.IA, ton assistant intelligent personnel propulsé par Gemini.">
-<title>Yvan.IA — Assistant intelligent</title>
+<meta name="theme-color" content="#090b18">
+<meta name="description" content="Yvan.IA, ton espace intelligent personnel propulsé par Gemini.">
+<title>Yvan.IA — Ton espace intelligent</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0815;--panel:#151023;--panel2:#1d1630;--line:#302545;--text:#f7f3ff;--muted:#a99dbd;--purple:#9b72f2;--purple2:#7044c5;--good:#78d6b0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+:root{
+ color-scheme:dark; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+ --bg:#090b18;--surface:#101426;--surface-2:#151b31;--surface-3:#1b2340;
+ --line:rgba(173,184,255,.13);--line-strong:rgba(173,184,255,.24);
+ --text:#f5f6ff;--muted:#929bb8;--muted-2:#69728f;
+ --violet:#9c7bff;--cyan:#67dcff;--pink:#ff85cf;--green:#78e6bd;
+ --shadow:0 24px 80px rgba(0,0,0,.34);
+}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -15%,#302052 0,transparent 45%),var(--bg);color:var(--text);display:flex;justify-content:center}
-.app{width:min(100%,980px);min-height:100vh;display:flex;flex-direction:column;padding:0 22px}
-header{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ffffff12}
-.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:-.04em;font-size:1.25rem}
-.logo{width:38px;height:38px;border-radius:13px;background:linear-gradient(145deg,#b99aff,#7044c5);display:grid;place-items:center;box-shadow:0 8px 28px #7044c544}
-.logo svg{width:23px;height:23px}
-.status{font-size:.78rem;color:var(--good);display:flex;align-items:center;gap:7px}.status.pending{color:#eacb84}.status.offline{color:#ff9ea8}
+html{min-height:100%;background:var(--bg);scroll-behavior:smooth}
+body{margin:0;min-height:100vh;color:var(--text);background:
+ radial-gradient(ellipse at 14% -10%,rgba(112,79,220,.22),transparent 34%),
+ radial-gradient(ellipse at 90% 8%,rgba(45,172,220,.12),transparent 30%),
+ radial-gradient(ellipse at 55% 110%,rgba(157,71,183,.12),transparent 38%),var(--bg)}
+button,input,textarea{font:inherit}
+button{color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.app-shell{min-height:100vh;display:grid;grid-template-columns:264px minmax(0,1fr);max-width:1680px;margin:auto}
+.sidebar{height:100vh;position:sticky;top:0;padding:22px 16px 18px;border-right:1px solid var(--line);background:rgba(9,12,26,.72);backdrop-filter:blur(22px);display:flex;flex-direction:column;z-index:5}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 8px 24px;font-size:1.18rem;font-weight:850;letter-spacing:-.055em}
+.brand-name span{color:#b8a4ff}
+.brand-mark{width:39px;height:39px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#b5a0ff 0%,#8063f5 48%,#35c7e9 100%);box-shadow:0 8px 30px rgba(117,92,245,.35),inset 0 1px 0 #ffffff80}
+.brand-mark svg{width:23px;height:23px}
+.new-chat{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:12px 14px;border:1px solid rgba(172,151,255,.35);border-radius:14px;background:linear-gradient(115deg,rgba(126,96,235,.22),rgba(48,187,220,.11));font-weight:700;cursor:pointer;transition:.2s}
+.new-chat:hover{border-color:rgba(103,220,255,.65);transform:translateY(-1px);box-shadow:0 10px 28px #6752c522}
+.new-chat svg{width:17px;height:17px}
+.side-label{margin:27px 10px 10px;color:var(--muted-2);font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.nav-link{display:flex;align-items:center;gap:11px;padding:11px 12px;margin:2px 0;border-radius:11px;color:#aeb6d1;text-decoration:none;font-size:.88rem;transition:.18s}
+.nav-link svg{width:17px;height:17px;opacity:.8}
+.nav-link:hover,.nav-link.active{background:rgba(139,120,242,.13);color:white}
+.nav-link.active{box-shadow:inset 2px 0 0 var(--violet)}
+.sidebar-spacer{flex:1}
+.profile-card{display:flex;align-items:center;gap:10px;padding:12px 10px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+.profile-avatar{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#8d72f3,#39b8d9);font-weight:850}
+.profile-copy{min-width:0}.profile-copy strong{display:block;font-size:.82rem}.profile-copy span{display:block;color:var(--muted);font-size:.7rem;margin-top:3px}
+.workspace{min-width:0;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 clamp(18px,4vw,52px);border-bottom:1px solid var(--line);background:rgba(9,11,24,.34);backdrop-filter:blur(18px)}
+.topbar-left{display:flex;align-items:center;gap:12px}.topbar-title{font-size:.9rem;font-weight:700;letter-spacing:-.02em}.topbar-subtitle{font-size:.72rem;color:var(--muted);margin-top:3px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.status{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border:1px solid rgba(120,230,189,.17);border-radius:99px;background:rgba(120,230,189,.055);font-size:.73rem;color:var(--green);white-space:nowrap}
+.status.pending{color:#f2d28b;border-color:rgba(242,210,139,.2);background:rgba(242,210,139,.06)}
+.status.offline{color:#ff9ba9;border-color:rgba(255,155,169,.2);background:rgba(255,155,169,.06)}
 .dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 12px currentColor}
-main{width:100%;max-width:820px;margin:0 auto;flex:1;display:flex;flex-direction:column;min-height:0}
-.welcome{text-align:center;padding:clamp(38px,8vh,86px) 12px 28px}
-.orb{width:74px;height:74px;border-radius:25px;margin:0 auto 20px;background:radial-gradient(circle at 35% 25%,#d6c4ff,#9367e8 42%,#4a2c86 100%);box-shadow:0 0 60px #8d61e84a;display:grid;place-items:center}
-.orb svg{width:39px;height:39px}
-h1{font-size:clamp(1.8rem,5vw,2.7rem);letter-spacing:-.06em;margin:0}
-.welcome p{color:var(--muted);margin:10px auto 0;max-width:480px;line-height:1.6}
-#messages{flex:1;min-height:240px;display:flex;flex-direction:column;gap:16px;padding:14px 0 28px}
-.message{display:flex;gap:11px;align-items:flex-start;max-width:100%;animation:appear .2s ease}
+.admin-link{width:35px;height:35px;display:grid;place-items:center;border:1px solid var(--line);border-radius:11px;color:var(--muted);text-decoration:none;transition:.2s}
+.admin-link:hover{color:white;border-color:var(--line-strong);background:#ffffff09}.admin-link svg{width:17px;height:17px}
+main{width:min(100%,1000px);margin:0 auto;flex:1;display:flex;flex-direction:column;min-height:0;padding:0 clamp(18px,4vw,48px)}
+.welcome{text-align:center;padding:clamp(42px,9vh,100px) 10px 25px;animation:rise .6s ease both}
+.orb-wrap{position:relative;width:90px;height:90px;margin:0 auto 24px}
+.orb{position:absolute;inset:8px;border-radius:28px;display:grid;place-items:center;background:radial-gradient(circle at 30% 22%,#d5caff 0%,#9c7bff 35%,#5940b9 72%,#1d6b91 100%);box-shadow:0 0 55px rgba(143,113,255,.34),inset 0 1px 0 #ffffff9c;animation:float 5s ease-in-out infinite}
+.orb svg{width:39px;height:39px;filter:drop-shadow(0 2px 8px #4e3a9a)}
+.orbit{position:absolute;inset:0;border:1px solid rgba(150,160,255,.25);border-radius:32px;transform:rotate(34deg);animation:orbit 12s linear infinite}
+.orbit:after{content:"";position:absolute;width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 18px var(--cyan);top:8px;left:9px}
+.welcome h1{font-size:clamp(2rem,5vw,3.25rem);letter-spacing:-.075em;line-height:1.08;margin:0;background:linear-gradient(100deg,#fff 15%,#c9baff 55%,#8de8ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.welcome p{max-width:570px;margin:15px auto 0;color:var(--muted);font-size:.98rem;line-height:1.7}
+.quick-prompts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;max-width:760px;margin:29px auto 0;text-align:left}
+.prompt-card{min-height:100px;padding:15px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.012));cursor:pointer;transition:.2s}
+.prompt-card:hover{transform:translateY(-3px);border-color:rgba(156,123,255,.5);background:linear-gradient(145deg,rgba(156,123,255,.13),rgba(103,220,255,.045))}
+.prompt-icon{width:29px;height:29px;display:grid;place-items:center;border-radius:10px;background:rgba(156,123,255,.15);color:#c3b3ff;margin-bottom:11px}
+.prompt-icon svg{width:16px;height:16px}.prompt-card strong{display:block;font-size:.8rem}.prompt-card span{display:block;color:var(--muted);font-size:.72rem;line-height:1.45;margin-top:5px}
+#messages{flex:1;min-height:220px;display:flex;flex-direction:column;gap:23px;padding:22px 0 32px;overflow:visible}
+.message{display:flex;gap:12px;align-items:flex-start;max-width:100%;animation:rise .25s ease}
 .message.user{flex-direction:row-reverse}
-.avatar{flex:0 0 32px;width:32px;height:32px;border-radius:11px;display:grid;place-items:center;background:#302348;color:#d8c7ff;font-size:.75rem;font-weight:800}
-.user .avatar{background:#6743ac;color:white}
-.bubble{max-width:min(82%,700px);padding:13px 16px;border:1px solid var(--line);border-radius:5px 17px 17px 17px;background:var(--panel);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;font-size:.96rem}
-.user .bubble{background:#56368f;border-color:#7652b4;border-radius:17px 5px 17px 17px}
-.error .bubble{background:#321b2b;border-color:#693344;color:#ffc0c7}
-.actions{display:flex;gap:8px;margin:7px 0 0 43px}
-.icon-btn{border:1px solid var(--line);background:#171126;color:var(--muted);border-radius:10px;padding:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.icon-btn:hover{border-color:var(--purple);color:white}
+.avatar{flex:0 0 35px;width:35px;height:35px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#a68cff,#6451c7);color:white;font-size:.75rem;font-weight:850;box-shadow:0 5px 18px #8068e52b}
+.user .avatar{background:linear-gradient(145deg,#35bcd8,#3973b9)}
+.bubble{max-width:min(84%,760px);padding:14px 17px;border:1px solid var(--line);border-radius:5px 17px 17px 17px;background:rgba(19,25,46,.88);backdrop-filter:blur(12px);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.72;font-size:.94rem;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.user .bubble{background:linear-gradient(135deg,rgba(105,81,197,.88),rgba(49,124,163,.78));border-color:rgba(164,151,255,.35);border-radius:17px 5px 17px 17px}
+.error .bubble{background:rgba(80,29,49,.7);border-color:rgba(255,123,153,.3);color:#ffc1cf}
+.actions{display:flex;gap:8px;margin:8px 0 0 47px}
+.icon-btn{width:36px;height:36px;border:1px solid var(--line);background:rgba(18,23,42,.85);color:var(--muted);border-radius:11px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:.18s}
+.icon-btn:hover{border-color:rgba(156,123,255,.55);color:white;background:#211c3b}
+.icon-btn:disabled{opacity:.45;cursor:not-allowed}
 .icon-btn svg{width:17px;height:17px}
-.composer-wrap{position:sticky;bottom:0;padding:16px 0 max(18px,env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 18%)}
-.composer{background:#171126;border:1px solid #46355f;border-radius:20px;padding:10px;box-shadow:0 18px 50px #0005}
-.composer:focus-within{border-color:#8b65d7;box-shadow:0 0 0 3px #8b65d71c}
-#prompt{width:100%;resize:none;min-height:48px;max-height:160px;border:0;outline:0;background:transparent;color:var(--text);font:inherit;padding:9px 10px}
-#prompt::placeholder{color:#827795}
-.controls{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 0}
+.composer-wrap{position:sticky;bottom:0;padding:16px 0 max(18px,env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(9,11,24,.96) 22%)}
+.composer{position:relative;border:1px solid rgba(156,123,255,.28);border-radius:22px;padding:12px 13px 11px;background:linear-gradient(145deg,rgba(23,29,53,.96),rgba(16,20,38,.96));box-shadow:0 20px 65px rgba(0,0,0,.34),0 0 40px rgba(117,90,218,.08);transition:.2s}
+.composer:focus-within{border-color:rgba(103,220,255,.58);box-shadow:0 0 0 3px rgba(103,220,255,.07),0 20px 65px rgba(0,0,0,.34)}
+#prompt{width:100%;resize:none;min-height:49px;max-height:170px;border:0;outline:0;background:transparent;color:var(--text);font:inherit;padding:10px 10px}
+#prompt::placeholder{color:#77809e}
+.controls{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 1px 0}
 .left-controls,.right-controls{display:flex;align-items:center;gap:8px}
-#send{border:0;border-radius:12px;background:linear-gradient(135deg,#a27af3,#7044c5);color:white;padding:11px 17px;font-weight:750;cursor:pointer;display:flex;gap:8px;align-items:center}
+#send{border:0;border-radius:13px;background:linear-gradient(110deg,#9878ff,#6f62e9 52%,#36b9d9);color:white;padding:11px 17px;font-weight:780;cursor:pointer;display:flex;gap:9px;align-items:center;box-shadow:0 7px 20px rgba(105,91,225,.25);transition:.18s}
+#send:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.1)}
 #send:disabled{opacity:.55;cursor:wait}
 #send svg{width:17px;height:17px}
-.small{font-size:.75rem;color:#847995}
-#access-panel{display:flex;justify-content:center;align-items:center;gap:9px;padding:0 0 8px;color:var(--muted);font-size:.8rem}
-#access{width:150px;max-width:42vw;background:#171126;border:1px solid var(--line);color:white;border-radius:9px;padding:8px 10px;outline:none}
-#access:focus{border-color:var(--purple)}
-footer{text-align:center;color:#716781;font-size:.72rem;padding:0 0 12px}
+.small{font-size:.72rem;color:var(--muted-2)}
+#access-panel{display:flex;justify-content:center;align-items:center;gap:9px;padding:0 0 10px;color:var(--muted);font-size:.76rem}
+#access{width:158px;max-width:45vw;background:rgba(17,22,42,.8);border:1px solid var(--line);color:white;border-radius:10px;padding:8px 10px;outline:none;font-size:.78rem}
+#access:focus{border-color:var(--violet)}
+footer{text-align:center;color:#68718e;font-size:.7rem;padding:0 0 15px}
+.mobile-brand{display:none}
 [hidden]{display:none!important}
-@keyframes appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-@media(max-width:600px){.app{padding:0 13px}header{height:65px}.status{font-size:.7rem}.welcome{padding-top:40px}.bubble{max-width:88%;font-size:.92rem}.small{display:none}#send{padding:11px 13px}}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-7px) rotate(3deg)}}
+@keyframes orbit{to{transform:rotate(394deg)}}
+@media(max-width:850px){.app-shell{grid-template-columns:76px minmax(0,1fr)}.sidebar{padding:18px 10px}.brand{justify-content:center;padding:2px 0 23px}.brand-name,.new-chat span,.side-label,.nav-link span,.profile-copy{display:none}.new-chat{height:44px;padding:0}.nav-link{justify-content:center;padding:12px}.profile-card{justify-content:center;padding:8px}.quick-prompts{max-width:650px}}
+@media(max-width:600px){.app-shell{display:block}.sidebar{display:none}.workspace{min-height:100vh}.topbar{height:62px;padding:0 15px}.mobile-brand{display:flex;align-items:center;gap:8px;font-weight:850;letter-spacing:-.04em}.mobile-brand .brand-mark{width:31px;height:31px;border-radius:11px}.mobile-brand .brand-mark svg{width:18px}.topbar-subtitle{display:none}.status{font-size:.67rem;padding:6px 8px}.admin-link{width:32px;height:32px}main{padding:0 14px}.welcome{padding:46px 3px 20px}.orb-wrap{width:78px;height:78px;margin-bottom:20px}.orb{inset:7px;border-radius:24px}.orb svg{width:34px}.welcome h1{font-size:2.15rem}.welcome p{font-size:.88rem}.quick-prompts{grid-template-columns:1fr;gap:8px;margin-top:22px}.prompt-card{min-height:0;padding:11px 13px;display:grid;grid-template-columns:30px 1fr;column-gap:10px;align-items:center}.prompt-icon{grid-row:span 2;margin:0}.prompt-card strong{align-self:end}.prompt-card span{margin-top:2px}.bubble{max-width:89%;font-size:.9rem;padding:12px 14px}.avatar{width:31px;height:31px;flex-basis:31px;border-radius:11px}.small{display:none}.composer-wrap{padding-top:12px}.composer{border-radius:18px;padding:9px}.icon-btn{width:34px;height:34px}#send{padding:10px 13px}#access-panel{padding-bottom:8px}footer{font-size:.66rem}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
-<div class="app">
-<header>
- <div class="brand"><div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M12 2.8 14.4 9.6 21.2 12l-6.8 2.4L12 21.2l-2.4-6.8L2.8 12l6.8-2.4L12 2.8Z"/><path d="m19 2 .8 2.2L22 5l-2.2.8L19 8l-.8-2.2L16 5l2.2-.8L19 2Z"/></svg></div>Yvan<span style="color:#b99aff">.IA</span></div>
- <div class="status pending"><span class="dot"></span> Vérification…</div>
-</header>
-<main>
- <section class="welcome" id="welcome">
-  <div class="orb"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M12 2.5 14.6 9.4 21.5 12l-6.9 2.6L12 21.5l-2.6-6.9L2.5 12l6.9-2.6L12 2.5Z"/><path d="m18.5 2 .7 1.8L21 4.5l-1.8.7L18.5 7l-.7-1.8-1.8-.7 1.8-.7.7-1.8Z"/></svg></div>
-  <h1>Que veux-tu faire aujourd'hui ?</h1>
-  <p>Pose-moi une question, demande-moi de t'expliquer quelque chose ou de t'aider dans ton travail.</p>
- </section>
- <section id="messages" aria-live="polite" aria-label="Historique de la conversation"></section>
- <div class="composer-wrap">
-  <form class="composer" id="chat">
-   <textarea id="prompt" rows="1" maxlength="8000" placeholder="Écris ton message à Yvan.IA…" aria-label="Ton message" required></textarea>
-   <div class="controls">
-    <div class="left-controls">
-     <button class="icon-btn" type="button" id="mic" aria-label="Dicter un message" title="Dicter un message"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 10.5a7 7 0 0 0 14 0M12 17.5v4m-4 0h8"/></svg></button>
-     <button class="icon-btn" type="button" id="clear" aria-label="Nouvelle conversation" title="Nouvelle conversation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg></button>
-     <span class="small" id="voice-status">Dictée vocale selon ton navigateur</span>
-    </div>
-    <div class="right-controls"><button id="send" type="submit">Envoyer <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 14-7-5 14-2-6-7-1Z"/></svg></button></div>
+<div class="app-shell">
+<aside class="sidebar" aria-label="Navigation principale">
+ <div class="brand"><div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7"><path d="M12 2.5 14.5 9.5 21.5 12l-7 2.5-2.5 7-2.5-7L2.5 12l7-2.5 2.5-7Z"/><path d="m19 2 .7 2.3L22 5l-2.3.7L19 8l-.7-2.3L16 5l2.3-.7L19 2Z"/></svg></div><div class="brand-name">Yvan<span>.IA</span></div></div>
+ <button class="new-chat" id="clear" type="button" title="Nouvelle conversation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>Nouvelle discussion</span></button>
+ <div class="side-label">Espace de travail</div>
+ <a class="nav-link active" href="/" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M4 6v14.5A2.5 2.5 0 0 1 6.5 18H20"/></svg><span>Assistant</span></a>
+ <a class="nav-link" href="/admin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 15v-3m4 3V8m4 7v-5"/></svg><span>Administration</span></a>
+ <div class="side-label">Capacités</div>
+ <div class="nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18m-5-5 5 5 5-5M5 8a7 7 0 1 1 14 0"/></svg><span>Dictée vocale</span></div>
+ <div class="nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h8l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg><span>Lecture de documents</span></div>
+ <div class="sidebar-spacer"></div>
+ <div class="profile-card"><div class="profile-avatar">Y</div><div class="profile-copy"><strong>Yvan.IA</strong><span>Assistant personnel · Gemini</span></div></div>
+</aside>
+<div class="workspace">
+ <header class="topbar">
+  <div class="topbar-left">
+   <div class="mobile-brand"><div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7"><path d="M12 2.5 14.5 9.5 21.5 12l-7 2.5-2.5 7-2.5-7L2.5 12l7-2.5 2.5-7Z"/></svg></div>Yvan<span style="color:#b8a4ff">.IA</span></div>
+   <div><div class="topbar-title">Assistant intelligent</div><div class="topbar-subtitle">Ton espace pour réfléchir, créer et avancer.</div></div>
+  </div>
+  <div class="topbar-right"><div class="status pending"><span class="dot"></span> Vérification…</div><a class="admin-link" href="/admin" aria-label="Administration" title="Administration"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0M19 4v4m-2-2h4"/></svg></a></div>
+ </header>
+ <main>
+  <section class="welcome" id="welcome">
+   <div class="orb-wrap"><div class="orbit"></div><div class="orb"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M12 2.5 14.6 9.4 21.5 12l-6.9 2.6L12 21.5l-2.6-6.9L2.5 12l6.9-2.6L12 2.5Z"/><path d="m18.5 2 .7 1.8L21 4.5l-1.8.7L18.5 8l-.7-1.8-1.8-.7 1.8-.7.7-1.8Z"/></svg></div></div>
+   <h1>Imagine. Demande. Crée.</h1>
+   <p>Bienvenue dans ton espace intelligent. Pose une question, explore une idée ou confie-moi une tâche : on avance ensemble.</p>
+   <div class="quick-prompts">
+    <button class="prompt-card" type="button" data-prompt="Aide-moi à organiser mes idées et à construire un plan d'action clair."><span class="prompt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"/><circle cx="12" cy="12" r="4"/></svg></span><strong>Clarifier une idée</strong><span>Transformer une pensée en plan concret.</span></button>
+    <button class="prompt-card" type="button" data-prompt="Explique-moi ce sujet simplement, étape par étape, avec un exemple."><span class="prompt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 10h12M4 15h9M4 20h6"/></svg></span><strong>Apprendre quelque chose</strong><span>Comprendre un sujet sans complication.</span></button>
+    <button class="prompt-card" type="button" data-prompt="Aide-moi à trouver une idée créative et originale pour mon prochain projet."><span class="prompt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2L12 3Z"/><path d="m19 16 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z"/></svg></span><strong>Créer et imaginer</strong><span>Faire émerger de nouvelles possibilités.</span></button>
    </div>
-  </form>
- </div>
- <section id="access-panel"><label for="access">Code privé</label><input id="access" type="password" autocomplete="current-password" placeholder="Code d'accès"></section>
-</main>
-<footer>Yvan.IA · Propulsé par Gemini · Tes conversations sont enregistrées sur cet appareil</footer>
+  </section>
+  <section id="messages" aria-live="polite" aria-label="Historique de la conversation"></section>
+  <div class="composer-wrap">
+   <form class="composer" id="chat">
+    <textarea id="prompt" rows="1" maxlength="8000" placeholder="Écris ton message à Yvan.IA…" aria-label="Ton message" required></textarea>
+    <div class="controls">
+     <div class="left-controls">
+      <button class="icon-btn" type="button" id="mic" aria-label="Dicter un message" title="Dicter un message"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 10.5a7 7 0 0 0 14 0M12 17.5v4m-4 0h8"/></svg></button>
+      <span class="small" id="voice-status">Dictée vocale selon ton navigateur</span>
+     </div>
+     <div class="right-controls"><button id="send" type="submit">Envoyer <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 14-7-5 14-2-6-7-1Z"/></svg></button></div>
+    </div>
+   </form>
+  </div>
+  <section id="access-panel"><label for="access">Code privé</label><input id="access" type="password" autocomplete="current-password" placeholder="Code d'accès"></section>
+ </main>
+ <footer>Yvan.IA · Propulsé par Gemini · Tes conversations sont enregistrées sur cet appareil</footer>
+</div>
 </div>
 <script>
 const $=selector=>document.querySelector(selector);
@@ -123,9 +194,10 @@ async function checkHealth(){
 }
 checkHealth();
 access.addEventListener("input",()=>{try{sessionStorage.setItem(CODE_KEY,access.value);}catch(_){}});
-function resizeInput(){promptInput.style.height="auto";promptInput.style.height=Math.min(promptInput.scrollHeight,160)+"px";}
+function resizeInput(){promptInput.style.height="auto";promptInput.style.height=Math.min(promptInput.scrollHeight,170)+"px";}
 promptInput.addEventListener("input",resizeInput);
 promptInput.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.isComposing){event.preventDefault();form.requestSubmit();}});
+document.querySelectorAll("[data-prompt]").forEach(button=>button.addEventListener("click",()=>{promptInput.value=button.dataset.prompt||"";resizeInput();promptInput.focus();}));
 $("#clear").addEventListener("click",()=>{
  if(!confirm("Commencer une nouvelle conversation ? L'historique local actuel sera effacé."))return;
  history=[];saveHistory();renderHistory();promptInput.focus();
@@ -158,7 +230,7 @@ form.addEventListener("submit",async event=>{
  try{
   const response=await fetch("/commande",{method:"POST",headers:{"Content-Type":"application/json","X-Code":access.value},body:JSON.stringify({texte:text,historique:previous})});
   const data=await response.json();
-  waiting.textContent=response.ok&&!data.erreur?(data.reponse||"Réponse vide."):("Erreur : "+(data.erreur||"Le serveur n'a pas répondu correctement."));
+  waiting.textContent=response.ok&&!data.erreur?(data.reponse||"Réponse vide."):( "Erreur : "+(data.erreur||"Le serveur n'a pas répondu correctement."));
   const role=response.ok&&!data.erreur?"assistant":"error";
   waiting.parentElement.className="message "+role;
   if(role==="assistant"){history.push({role:"assistant",text:waiting.textContent});saveHistory();}
