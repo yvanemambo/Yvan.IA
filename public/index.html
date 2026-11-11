@@ -177,7 +177,6 @@ body:not(.authenticated) .account-bar{display:none}
  </section>
  <section id="messages" aria-live="polite" aria-label="Historique de la conversation"></section>
  <div class="account-bar"><span id="accountEmail"></span><button id="logoutButton" type="button">Se déconnecter</button></div>
- <div class="account-bar"><span id="accountEmail"></span><button id="logoutButton" type="button">Se déconnecter</button></div>
  <div class="composer-wrap">
   <form class="composer" id="chat">
    <textarea id="prompt" rows="1" maxlength="8000" placeholder="Écris ton message à Yvan.IA…" aria-label="Ton message" required></textarea>
@@ -296,8 +295,8 @@ authForm.addEventListener("submit",async event=>{
    const meData=await meResponse.json();if(!meResponse.ok||!meData.utilisateur?.id)throw new Error("Impossible de vérifier le compte. Réessaie de te connecter.");
    setAuthenticated(meData.utilisateur);authPassword.value="";authError.textContent="";
   }else if(authMode==="signup"){
-   authError.textContent="Compte créé. Vérifie ta boîte e-mail pour confirmer ton adresse, puis connecte-toi.";
    setAuthMode("login");
+   authError.textContent="Compte créé. Vérifie ta boîte e-mail pour confirmer ton adresse, puis connecte-toi.";
   }else{throw new Error("La connexion n'a pas renvoyé de session valide.");}
  }catch(error){authError.textContent=error.message;}
  finally{authSubmit.disabled=false;}
