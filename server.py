@@ -2,6 +2,9 @@ import hmac
 import os
 import time
 import uuid
+import json
+import urllib.error
+import urllib.request
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,6 +46,9 @@ metrics = {
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 48 * 1024
 
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "").strip()
+
 SYSTEM = """Tu es Yvan.IA, un assistant personnel intelligent qui répond en français par défaut.
 Tu es chaleureux, précis, pédagogique et honnête. Adapte la longueur de tes réponses à la demande.
 Pour les sujets techniques, explique les étapes clairement et signale les limites ou incertitudes.
@@ -50,6 +56,102 @@ Ne prétends jamais avoir effectué une action externe que tu n'as pas réelleme
 Tu peux consulter les fichiers autorisés dans dossier_mbo et préparer des brouillons d'e-mails.
 Tu ne peux pas envoyer d'e-mails, accéder à l'ordinateur personnel de l'utilisateur, ni inventer le contenu d'un fichier.
 Quand une demande est ambiguë, pose une seule question utile."""
+
+
+def supabase_request(path, method="GET", payload=None, access_token=None):
+    """Appelle Supabase Auth avec la clé publique et, si présent, le JWT utilisateur."""
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise RuntimeError("Supabase n'est pas configuré. Ajoute SUPABASE_URL et SUPABASE_ANON_KEY.")
+    headers = {"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json"}
+    if access_token:
+        headers["Authorization"] = "Bearer " + access_token
+    body = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(SUPABASE_URL + path, data=body, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=12) as response:
+            raw = response.read().decode("utf-8")
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        try:
+            detail = json.loads(raw)
+        except ValueError:
+            detail = {}
+        message = detail.get("msg") or detail.get("message") or detail.get("error_description") or detail.get("error") or "Requête Supabase refusée."
+        raise ValueError(str(message)[:240]) from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise RuntimeError("Impossible de joindre Supabase pour le moment.") from exc
+
+
+def current_user():
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None
+    token = header[7:].strip()
+    if not token or len(token) > 8192:
+        return None
+    try:
+        user = supabase_request("/auth/v1/user", access_token=token)
+        return user if isinstance(user, dict) and user.get("id") else None
+    except (ValueError, RuntimeError):
+        return None
+
+
+@app.post("/auth/inscription")
+def auth_signup():
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        return jsonify(erreur="La connexion Supabase doit d'abord être configurée sur le serveur."), 503
+    data = request.get_json(silent=True) or {}
+    email = data.get("email")
+    password = data.get("mot_de_passe")
+    if not isinstance(email, str) or len(email.strip()) > 254 or "@" not in email:
+        return jsonify(erreur="Adresse e-mail invalide."), 400
+    if not isinstance(password, str) or len(password) < 10 or len(password) > 128:
+        return jsonify(erreur="Choisis un mot de passe de 10 à 128 caractères."), 400
+    try:
+        result = supabase_request("/auth/v1/signup", method="POST", payload={"email": email.strip().lower(), "password": password})
+        return jsonify(result), 200
+    except ValueError as exc:
+        return jsonify(erreur=str(exc)), 400
+    except RuntimeError as exc:
+        return jsonify(erreur=str(exc)), 503
+
+
+@app.post("/auth/connexion")
+def auth_login():
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        return jsonify(erreur="La connexion Supabase doit d'abord être configurée sur le serveur."), 503
+    data = request.get_json(silent=True) or {}
+    email = data.get("email")
+    password = data.get("mot_de_passe")
+    if not isinstance(email, str) or not isinstance(password, str):
+        return jsonify(erreur="Saisis ton adresse e-mail et ton mot de passe."), 400
+    try:
+        result = supabase_request("/auth/v1/token?grant_type=password", method="POST", payload={"email": email.strip().lower(), "password": password})
+        return jsonify(result), 200
+    except ValueError as exc:
+        return jsonify(erreur="Connexion impossible : vérifie ton e-mail et ton mot de passe."), 401
+    except RuntimeError as exc:
+        return jsonify(erreur=str(exc)), 503
+
+
+@app.get("/auth/moi")
+def auth_me():
+    user = current_user()
+    if not user:
+        return jsonify(erreur="Session absente ou expirée."), 401
+    return jsonify(utilisateur={"id": user.get("id"), "email": user.get("email")})
+
+
+@app.post("/auth/deconnexion")
+def auth_logout():
+    token = request.headers.get("Authorization", "")
+    if token.startswith("Bearer ") and SUPABASE_URL and SUPABASE_ANON_KEY:
+        try:
+            supabase_request("/auth/v1/logout", method="POST", payload={}, access_token=token[7:].strip())
+        except (ValueError, RuntimeError):
+            pass
+    return jsonify(ok=True)
 
 def safe_path(relative):
     if not isinstance(relative, str) or not relative.strip():
@@ -183,7 +285,8 @@ def health():
         platform=PLATFORM,
         gemini_configured=gemini_ready,
         admin_configured=bool(os.getenv("ADMIN_CODE", "").strip()),
-        ready=gemini_ready,
+        supabase_configured=bool(SUPABASE_URL and SUPABASE_ANON_KEY),
+        ready=gemini_ready and bool(SUPABASE_URL and SUPABASE_ANON_KEY),
     )
 
 @app.get("/admin/metrics")
@@ -207,6 +310,11 @@ def admin_metrics():
 
 @app.post("/commande")
 def command():
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        return jsonify(erreur="Les comptes utilisateurs ne sont pas encore configurés. Ajoute les variables Supabase au serveur."), 503
+    user = current_user()
+    if not user:
+        return jsonify(erreur="Connecte-toi à ton compte Yvan.IA pour continuer."), 401
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
     if rate_limited(ip):
         return jsonify(erreur="Trop de demandes en peu de temps. Attends une minute puis réessaie."), 429
