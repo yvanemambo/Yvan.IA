@@ -1,0 +1,4 @@
+flask>=3.0,<4
+anthropic>=0.80,<1
+pypdf>=5,<7
+cryptography>=44,<47
