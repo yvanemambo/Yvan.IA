@@ -125,6 +125,7 @@ footer{text-align:center;color:#99958b;font-size:.72rem;padding:0 0 13px}
 .account-bar button{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:7px 10px;color:var(--text);cursor:pointer}
 body:not(.authenticated) #welcome,body:not(.authenticated) #messages,body:not(.authenticated) .composer-wrap{display:none}
 body.authenticated #authPanel{display:none}
+body:not(.authenticated) .account-bar{display:none}
 @media(max-width:600px){.auth-panel{margin-top:36px;padding:21px}}
 </style>
 </head>
@@ -135,6 +136,19 @@ body.authenticated #authPanel{display:none}
  <div class="status pending"><span class="dot"></span> Vérification…</div>
 </header>
 <main>
+ <section class="auth-panel" id="authPanel">
+  <div class="anime-stage" aria-hidden="true" style="height:120px;margin-bottom:6px"><div class="anime-halo" style="width:108px;height:108px"><div class="anime-face" style="transform:scale(.78)"><svg viewBox="0 0 120 136" xmlns="http://www.w3.org/2000/svg"><path d="M13 63C7 28 29 4 62 7c31 2 47 24 43 58l-8 51H24Z" fill="#292821"/><path d="M27 57c0-27 14-42 34-42s34 15 34 42v29c0 25-15 40-34 40S27 111 27 86Z" fill="#d88f69"/><path d="M22 59C15 27 36 7 63 9c22 1 39 15 40 43-9-7-16-17-19-27-11 14-31 22-61 21Z" fill="#292821"/><g fill="#342329"><ellipse cx="46" cy="77" rx="5.2" ry="8"/><ellipse cx="76" cy="77" rx="5.2" ry="8"/></g><path d="M49 101q11 10 22 0" fill="none" stroke="#9d4c50" stroke-width="2.5" stroke-linecap="round"/><path d="M25 124q35-18 70 0v12H25Z" fill="#c56b45"/></svg></div></div></div>
+  <h2 id="authTitle">Bienvenue sur Yvan.IA</h2>
+  <p id="authDescription">Connecte-toi pour retrouver ton espace personnel et tes appareils.</p>
+  <form class="auth-form" id="authForm">
+   <input id="authEmail" type="email" autocomplete="email" placeholder="Adresse e-mail" maxlength="254" required>
+   <input id="authPassword" type="password" autocomplete="current-password" placeholder="Mot de passe (10 caractères minimum)" minlength="10" maxlength="128" required>
+   <button id="authSubmit" type="submit">Se connecter</button>
+  </form>
+  <div class="auth-switch"><button id="authToggle" type="button">Créer un compte</button></div>
+  <div class="auth-error" id="authError" role="alert"></div>
+  <p class="auth-note">Tes fichiers et appareils resteront séparés de ceux des autres utilisateurs.</p>
+ </section>
  <section class="welcome" id="welcome">
   <div class="anime-stage" id="animeStage" data-state="idle" role="img" aria-label="Yvan, ton compagnon anime animé">
    <div class="anime-halo">
@@ -162,7 +176,9 @@ body.authenticated #authPanel{display:none}
   <p>Pose-moi une question, demande-moi de t'expliquer quelque chose ou de t'aider dans ton travail.</p>
  </section>
  <section id="messages" aria-live="polite" aria-label="Historique de la conversation"></section>
- <div class="account-bar"><span id="accountEmail"></span><button id="logoutButton" type="button">Se déconnecter</button></div>\n <div class="composer-wrap">
+ <div class="account-bar"><span id="accountEmail"></span><button id="logoutButton" type="button">Se déconnecter</button></div>
+ <div class="account-bar"><span id="accountEmail"></span><button id="logoutButton" type="button">Se déconnecter</button></div>
+ <div class="composer-wrap">
   <form class="composer" id="chat">
    <textarea id="prompt" rows="1" maxlength="8000" placeholder="Écris ton message à Yvan.IA…" aria-label="Ton message" required></textarea>
    <div class="controls">
@@ -181,7 +197,9 @@ body.authenticated #authPanel{display:none}
 <script>
 const $=selector=>document.querySelector(selector);
 const messages=$("#messages"),welcome=$("#welcome"),form=$("#chat"),promptInput=$("#prompt"),send=$("#send"),mic=$("#mic"),voiceStatus=$("#voice-status"),statusEl=$(".status");
-const animeStage=$("#animeStage"),animeCaption=$("#animeCaption"),voiceToggle=$("#voice-toggle");\nconst authForm=$("#authForm"),authEmail=$("#authEmail"),authPassword=$("#authPassword"),authError=$("#authError"),authSubmit=$("#authSubmit"),authToggle=$("#authToggle");\nlet authMode="login",accessToken=sessionStorage.getItem("yvan-ia-access-token")||"";
+const animeStage=$("#animeStage"),animeCaption=$("#animeCaption"),voiceToggle=$("#voice-toggle");
+const authForm=$("#authForm"),authEmail=$("#authEmail"),authPassword=$("#authPassword"),authError=$("#authError"),authSubmit=$("#authSubmit"),authToggle=$("#authToggle");
+let authMode="login",accessToken=sessionStorage.getItem("yvan-ia-access-token")||"";
 let voiceEnabled=true;
 function setAnimeState(state){
  if(!animeStage)return;
@@ -189,7 +207,8 @@ function setAnimeState(state){
  const labels={idle:"Yvan est prêt à t’aider",listening:"Yvan t’écoute…",thinking:"Yvan réfléchit avec Gemini…",responding:"Yvan te répond…",speaking:"Yvan te parle…"};
  if(animeCaption)animeCaption.textContent=labels[state]||labels.idle;
 }
-let historyKey="yvan-ia-history-v2:guest";\nlet currentUserId="";
+let historyKey="yvan-ia-history-v2:guest";
+let currentUserId="";
 const speechSupported="speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 function speakReply(text){
  if(!voiceEnabled||!speechSupported||!text)return false;
@@ -222,9 +241,9 @@ if(!speechSupported){
  });
  window.speechSynthesis.getVoices();
 }
-let history=[];
-try{history=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");if(!Array.isArray(history))history=[];history=history.filter(item=>item&&["user","assistant"].includes(item.role)&&typeof item.text==="string").slice(-80);}catch(_){history=[];}
-function saveHistory(){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(-80)));}catch(_){voiceStatus.textContent="Stockage local indisponible";}}
+function readHistory(key){try{const value=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(value)?value.filter(item=>item&&["user","assistant"].includes(item.role)&&typeof item.text==="string").slice(-80):[];}catch(_){return [];}}
+let history=readHistory(historyKey);
+function saveHistory(){try{localStorage.setItem(historyKey,JSON.stringify(history.slice(-80)));}catch(_){voiceStatus.textContent="Stockage local indisponible";}}
 function addMessage(text,role,save=true){
  const wrap=document.createElement("article");wrap.className="message "+role;
  const avatar=document.createElement("div");avatar.className="avatar";avatar.textContent=role==="user"?"Vous":"Y";
@@ -249,6 +268,8 @@ function setAuthMode(mode){
 }
 authToggle.addEventListener("click",()=>setAuthMode(authMode==="login"?"signup":"login"));
 function setAuthenticated(user){
+ const nextId=user&&user.id?String(user.id):"";
+ if(nextId!==currentUserId){currentUserId=nextId;historyKey=nextId?"yvan-ia-history-v2:"+nextId:"yvan-ia-history-v2:guest";history=readHistory(historyKey);renderHistory();}
  document.body.classList.toggle("authenticated",Boolean(user));
  $("#accountEmail").textContent=user?"Connecté : "+(user.email||"compte Yvan.IA"):"";
  welcome.hidden=history.length>0;
@@ -298,7 +319,8 @@ async function checkHealth(){
   statusEl.lastChild.textContent="Serveur inaccessible";
  }
 }
-checkHealth();\ncheckSession();
+checkHealth();
+checkSession();
 function resizeInput(){promptInput.style.height="auto";promptInput.style.height=Math.min(promptInput.scrollHeight,160)+"px";}
 promptInput.addEventListener("input",resizeInput);
 promptInput.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.isComposing){event.preventDefault();form.requestSubmit();}});
@@ -333,6 +355,7 @@ form.addEventListener("submit",async event=>{
  try{
   const response=await fetch("/commande",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({texte:text,historique:previous})});
   const data=await response.json();
+  if(response.status===401){accessToken="";sessionStorage.removeItem("yvan-ia-access-token");setAuthenticated(null);throw new Error("Ta session a expiré. Reconnecte-toi.");}
   waiting.textContent=response.ok&&!data.erreur?(data.reponse||"Réponse vide."):("Erreur : "+(data.erreur||"Le serveur n'a pas répondu correctement."));
   const role=response.ok&&!data.erreur?"assistant":"error";
   waiting.parentElement.className="message "+role;
