@@ -195,7 +195,7 @@ if(SpeechRecognition){
  const recognition=new SpeechRecognition();recognition.lang="fr-FR";recognition.interimResults=true;recognition.continuous=false;
  let baseText="";
  mic.addEventListener("click",()=>{
-  try{baseText=promptInput.value.trim();recognition.start();voiceStatus.textContent="Je t'écoute…";mic.style.color="#c4a7ff";}catch(_){voiceStatus.textContent="La dictée est déjà active.";}
+  try{baseText=promptInput.value.trim();recognition.start();voiceStatus.textContent="Je t'écoute…";mic.style.color="#c56b45";setAnimeState("listening");}catch(_){voiceStatus.textContent="La dictée est déjà active.";}
  });
  recognition.onresult=event=>{
   let transcript="";for(let i=event.resultIndex;i<event.results.length;i++)transcript+=event.results[i][0].transcript;
