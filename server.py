@@ -99,6 +99,9 @@ def current_user():
 
 @app.post("/auth/inscription")
 def auth_signup():
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    if rate_limited(ip):
+        return jsonify(erreur="Trop de tentatives. Attends une minute puis réessaie."), 429
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
         return jsonify(erreur="La connexion Supabase doit d'abord être configurée sur le serveur."), 503
     data = request.get_json(silent=True) or {}
@@ -119,6 +122,9 @@ def auth_signup():
 
 @app.post("/auth/connexion")
 def auth_login():
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    if rate_limited(ip):
+        return jsonify(erreur="Trop de tentatives. Attends une minute puis réessaie."), 429
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
         return jsonify(erreur="La connexion Supabase doit d'abord être configurée sur le serveur."), 503
     data = request.get_json(silent=True) or {}
