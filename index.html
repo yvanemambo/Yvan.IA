@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#100b20">
-<title>MBO.IA</title>
+<title>Yvan.IA</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#100b20;color:#f5f1ff}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;flex-direction:column;max-width:850px;padding:16px;margin-inline:auto}
@@ -19,7 +19,7 @@ button{border:0;border-radius:12px;padding:12px 16px;background:#8055d6;color:wh
 </head>
 <body>
 <header><h1>MBO<span>.IA</span></h1><p>Ton assistant intelligent personnel</p></header>
-<main id="messages" aria-live="polite"><div class="bubble assistant">Bonjour ! Je suis MBO.IA. Comment puis-je t'aider ?</div></main>
+<main id="messages" aria-live="polite"><div class="bubble assistant">Bonjour ! Je suis Yvan.IA. Comment puis-je t'aider ?</div></main>
 <div id="settings"><label for="access">Code d'accès</label><input id="access" type="password" autocomplete="current-password" placeholder="Entre ton code d'accès"></div>
 <form id="chat"><input id="prompt" maxlength="8000" placeholder="Écris ton message…" autocomplete="off" required><button id="send">Envoyer</button></form>
 <script>
@@ -30,7 +30,7 @@ access.addEventListener("change",()=>{try{sessionStorage.setItem("mbo-code",acce
 function add(text,role){const el=document.createElement("div");el.className="bubble "+role;el.textContent=text;messages.append(el);messages.scrollTop=messages.scrollHeight}
 form.addEventListener("submit",async e=>{e.preventDefault();const text=promptInput.value.trim();if(!text||send.disabled)return;add(text,"user");promptInput.value="";send.disabled=true;send.textContent="…";
 try{const response=await fetch("/commande",{method:"POST",headers:{"Content-Type":"application/json","X-Code":access.value,"X-Conversation-ID":conversationId},body:JSON.stringify({texte:text})});const data=await response.json();if(!response.ok||data.erreur)add(data.erreur||"Erreur serveur.","error");else add(data.reponse||"Réponse vide.","assistant")}
-catch(err){add("Impossible de joindre MBO.IA. Vérifie que le serveur fonctionne.","error")}
+catch(err){add("Impossible de joindre Yvan.IA. Vérifie que le serveur fonctionne.","error")}
 finally{send.disabled=false;send.textContent="Envoyer";promptInput.focus()}
 });
 </script>
