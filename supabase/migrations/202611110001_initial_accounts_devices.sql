@@ -124,3 +124,10 @@ for select to authenticated using (user_id = (select auth.uid()));
 
 -- Aucun accès anonyme. Les opérations d'agent Windows seront ajoutées
 -- avec des fonctions RPC dédiées et des jetons d'appareil à portée limitée.
+
+-- Droits SQL explicites pour les utilisateurs authentifiés ; RLS reste la barrière d’isolation.
+grant select, update on public.profiles to authenticated;
+grant select, update on public.user_devices to authenticated;
+grant select, insert on public.device_pairing_sessions to authenticated;
+grant select, insert, update, delete on public.approved_folders to authenticated;
+grant select on public.device_audit_events to authenticated;
