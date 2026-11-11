@@ -3,6 +3,9 @@
 Yvan.IA est un assistant personnel en français, construit avec Flask et Google Gemini. Le projet fonctionne avec Flask et peut être hébergé sur Render ou Vercel.
 
 ## Fonctionnalités
+- Création de compte et connexion par e-mail avec Supabase Auth.
+- Session utilisateur vérifiée côté serveur avant chaque appel au chat.
+- Schéma Supabase avec isolation RLS pour profils, appareils, demandes d'association, dossiers approuvés et journal d'activité.
 - Chat avec Gemini (modèle configurable).
 - Historique local, limité et nettoyé avant envoi à l'API.
 - Dictée vocale selon les capacités et autorisations du navigateur.
@@ -22,10 +25,25 @@ Yvan.IA est un assistant personnel en français, construit avec Flask et Google 
 - `requirements.txt` : dépendances.
 - `dossier_mbo/` : fichiers consultables en lecture seule.
 
+## Configuration Supabase (obligatoire pour les comptes)
+
+1. Crée un projet Supabase dédié à Yvan.IA.
+2. Ouvre SQL Editor dans le tableau de bord Supabase.
+3. Exécute le fichier supabase/migrations/202611110001_initial_accounts_devices.sql.
+4. Dans Project Settings > API, copie l'URL du projet et la clé anon/public.
+5. Dans Render > Environment, ajoute SUPABASE_URL et SUPABASE_ANON_KEY.
+6. Dans Supabase > Authentication > URL Configuration, configure l'URL de ton site Render comme URL du site et ajoute-la aux URL de redirection.
+7. Dans Supabase > Authentication > Providers > Email, vérifie la politique de confirmation d'adresse e-mail.
+
+N'utilise jamais la clé service_role dans le navigateur ou dans GitHub. Le serveur utilise la clé publique anon et le jeton de session de l'utilisateur. Les tables personnelles ont Row Level Security (RLS) activé.
+
+Le formulaire de connexion et d'inscription est prêt côté interface et les routes serveur appellent Supabase Auth. Tant que les deux variables Supabase ne sont pas configurées et que la migration SQL n'est pas exécutée, les comptes ne peuvent pas fonctionner et le chat reste protégé.
+
 ## Variables d'environnement
 Dans Render, ouvre le service Yvan.IA puis Environment et configure :
 - `GEMINI_API_KEY` : clé privée Google AI Studio.
-- `ADMIN_CODE` : code secret réservé à l'administrateur. Il doit être différent de `MBO_CODE`.
+- `ADMIN_CODE` : code secret réservé à l'administrateur.
+- `SUPABASE_URL` et `SUPABASE_ANON_KEY` : URL du projet Supabase et clé publique anon.
 - `GEMINI_MODEL` : modèle disponible sur ton compte. Valeur par défaut : `gemini-3.8-flash`.
 
 Configure `ADMIN_CODE` dans les variables d’environnement Render que tu souhaites tester (Preview/Production séparément). Choisis un code long et unique. Ne le mets jamais dans GitHub, dans le code source ou dans un message. Ne partage pas ce code avec les utilisateurs.
@@ -47,6 +65,10 @@ Les compteurs de requêtes/réponses/erreurs sont en mémoire dans un processus.
 - `/admin/metrics` est protégé par `ADMIN_CODE`.
 - Envoie un message depuis l'interface pour tester réellement la clé et le modèle.
 - Teste la dictée vocale dans un navigateur compatible avec l'autorisation micro.
+
+## État des fonctions appareils
+
+Le schéma de données prépare les appareils Windows/Android, les demandes d'association, les dossiers autorisés et les journaux. L'association QR, le programme compagnon Windows et la recherche dans les vrais fichiers du PC ne sont pas encore implémentés. Aucun accès à l'ordinateur personnel n'est possible à ce stade.
 
 ## Limites à connaître
 - L'historique est conservé dans le stockage local du navigateur. Il n'est pas synchronisé entre appareils et peut disparaître si les données du navigateur sont supprimées.
