@@ -96,3 +96,36 @@ def test_pdf_reader_handles_textless_pdf(tmp_path, monkeypatch):
     with pdf_path.open("wb") as stream:
         writer.write(stream)
     assert "Aucun texte extractible" in lire_fichier("empty.pdf")
+
+
+def test_admin_dashboard_page_is_served(client):
+    response = client.get("/admin")
+    assert response.status_code == 200
+    assert b"Tableau de bord" in response.data
+
+
+def test_admin_metrics_requires_separate_admin_code(client, monkeypatch):
+    monkeypatch.setenv("MBO_CODE", "user-secret")
+    monkeypatch.setenv("ADMIN_CODE", "admin-secret")
+    wrong = client.get("/admin/metrics", headers={"X-Admin-Code": "user-secret"})
+    assert wrong.status_code == 401
+    correct = client.get("/admin/metrics", headers={"X-Admin-Code": "admin-secret"})
+    assert correct.status_code == 200
+    payload = correct.get_json()
+    assert payload["admin_configured"] is True
+    assert "metrics" in payload
+    assert "metrics_scope" in payload
+    assert "admin-secret" not in correct.get_data(as_text=True)
+
+
+def test_admin_metrics_reports_unconfigured_admin(client, monkeypatch):
+    monkeypatch.delenv("ADMIN_CODE", raising=False)
+    response = client.get("/admin/metrics")
+    assert response.status_code == 503
+    assert "ADMIN_CODE" in response.get_json()["erreur"]
+
+
+def test_health_reports_admin_configuration(client, monkeypatch):
+    monkeypatch.setenv("ADMIN_CODE", "admin-secret")
+    response = client.get("/sante")
+    assert response.get_json()["admin_configured"] is True
