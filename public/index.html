@@ -242,7 +242,28 @@ if(!speechSupported){
 }
 function readHistory(key){try{const value=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(value)?value.filter(item=>item&&["user","assistant"].includes(item.role)&&typeof item.text==="string").slice(-80):[];}catch(_){return [];}}
 let history=readHistory(historyKey);
-function saveHistory(){try{localStorage.setItem(historyKey,JSON.stringify(history.slice(-80)));}catch(_){voiceStatus.textContent="Stockage local indisponible";}}
+function saveHistory(){
+ const snapshot=history.slice(-80);
+ try{localStorage.setItem(historyKey,JSON.stringify(snapshot));}catch(_){voiceStatus.textContent="Stockage local indisponible";}
+ if(accessToken){
+  fetch("/historique",{method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({messages:snapshot})})
+   .then(response=>{if(!response.ok)voiceStatus.textContent="Historique cloud non synchronisé";})
+   .catch(()=>{voiceStatus.textContent="Historique cloud indisponible";});
+ }
+}
+async function loadRemoteHistory(){
+ if(!accessToken)return;
+ try{
+  const response=await fetch("/historique",{headers:{"Authorization":"Bearer "+accessToken},cache:"no-store"});
+  if(!response.ok)throw new Error("history");
+  const data=await response.json();
+  if(Array.isArray(data.messages)){
+   history=data.messages.filter(item=>item&&["user","assistant"].includes(item.role)&&typeof item.text==="string").slice(-80);
+   try{localStorage.setItem(historyKey,JSON.stringify(history));}catch(_){}
+   renderHistory();
+  }
+ }catch(_){voiceStatus.textContent="Historique cloud indisponible : copie locale conservée";}
+}
 function addMessage(text,role,save=true){
  const wrap=document.createElement("article");wrap.className="message "+role;
  const avatar=document.createElement("div");avatar.className="avatar";avatar.textContent=role==="user"?"Vous":"Y";
@@ -280,6 +301,7 @@ async function checkSession(){
   const data=await response.json();
   if(!response.ok)throw new Error("session");
   setAuthenticated(data.utilisateur);
+  await loadRemoteHistory();
  }catch(_){accessToken="";sessionStorage.removeItem("yvan-ia-access-token");setAuthenticated(null);}
 }
 authForm.addEventListener("submit",async event=>{
@@ -293,7 +315,7 @@ authForm.addEventListener("submit",async event=>{
    accessToken=data.access_token;sessionStorage.setItem("yvan-ia-access-token",accessToken);
    const meResponse=await fetch("/auth/moi",{headers:{Authorization:"Bearer "+accessToken},cache:"no-store"});
    const meData=await meResponse.json();if(!meResponse.ok||!meData.utilisateur?.id)throw new Error("Impossible de vérifier le compte. Réessaie de te connecter.");
-   setAuthenticated(meData.utilisateur);authPassword.value="";authError.textContent="";
+   setAuthenticated(meData.utilisateur);await loadRemoteHistory();authPassword.value="";authError.textContent="";
   }else if(authMode==="signup"){
    setAuthMode("login");
    authError.textContent="Compte créé. Vérifie ta boîte e-mail pour confirmer ton adresse, puis connecte-toi.";
