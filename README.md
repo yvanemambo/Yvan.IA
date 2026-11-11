@@ -27,11 +27,11 @@ Yvan.IA est un assistant personnel en français, construit avec Flask et Google 
 
 ## Configuration Supabase (obligatoire pour les comptes)
 
-1. Crée un projet Supabase dédié à Yvan.IA.
-2. Ouvre SQL Editor dans le tableau de bord Supabase.
-3. Exécute le fichier supabase/migrations/202611110001_initial_accounts_devices.sql.
-4. Dans Project Settings > API, copie l'URL du projet et la clé anon/public.
-5. Dans Render > Environment, ajoute SUPABASE_URL et SUPABASE_ANON_KEY.
+1. Le projet Supabase dédié Yvan.IA est créé dans l'organisation yvan (région eu-west-1).
+2. Les migrations du dossier supabase/migrations doivent être exécutées dans l'ordre : 202611110001_initial_accounts_devices.sql puis 202611110002_lock_down_profile_trigger_function.sql.
+3. L'initialisation de ces deux migrations a déjà été appliquée et vérifiée sur le projet Supabase Yvan.IA.
+4. Dans Project Settings > API, l'URL du projet et la clé publique (publishable/anon) sont disponibles.
+5. Dans Render > Environment, ajoute SUPABASE_URL et SUPABASE_ANON_KEY avant de déployer cette branche.
 6. Dans Supabase > Authentication > URL Configuration, configure l'URL de ton site Render comme URL du site et ajoute-la aux URL de redirection.
 7. Dans Supabase > Authentication > Providers > Email, vérifie la politique de confirmation d'adresse e-mail.
 
