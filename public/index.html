@@ -65,6 +65,25 @@ footer{text-align:center;color:#99958b;font-size:.72rem;padding:0 0 13px}
 .anime-caption{font-size:.75rem;color:var(--muted);margin-top:-8px;letter-spacing:.02em}
 
 /* Etats vivants du compagnon */
+
+/* Mouvements expressifs et synchronisation vocale */
+.anime-face{transform-origin:50% 55%;animation:faceBreath 4.2s ease-in-out infinite}
+.anime-face svg{transform-origin:50% 55%}
+.anime-stage[data-state="idle"] .anime-face{animation:faceBreath 4.2s ease-in-out infinite}
+.anime-stage[data-state="listening"] .anime-face{animation:listenTilt 1.8s ease-in-out infinite}
+.anime-stage[data-state="thinking"] .anime-face{animation:thinkTilt 2.6s ease-in-out infinite}
+.anime-stage[data-state="speaking"] .anime-face{animation:speakBounce .32s ease-in-out infinite alternate}
+.anime-stage[data-state="speaking"] #animeMouth{transform-box:fill-box;transform-origin:center;animation:mouthTalk .19s ease-in-out infinite alternate}
+.anime-stage[data-state="speaking"] .anime-halo{animation:respondGlow .9s ease-in-out infinite alternate;box-shadow:0 0 0 10px #c56b4514,0 0 42px #c56b4560}
+.anime-stage[data-state="listening"] .anime-spark{animation-duration:1.1s}
+#animeMouth{transition:transform .12s}
+#voice-toggle[aria-pressed="true"]{color:var(--accent-dark);border-color:#d8b6a5;background:#fbf5f0}
+@keyframes faceBreath{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(.7deg)}}
+@keyframes listenTilt{0%,100%{transform:rotate(-2deg) translateY(0)}50%{transform:rotate(2deg) translateY(-2px)}}
+@keyframes thinkTilt{0%,100%{transform:rotate(2deg)}50%{transform:rotate(-3deg) translateY(-3px)}}
+@keyframes speakBounce{from{transform:translateY(0) rotate(-.5deg)}to{transform:translateY(-2px) rotate(.5deg)}}
+@keyframes mouthTalk{from{transform:scaleY(.55)}to{transform:scaleY(1.8)}}
+
 .anime-stage[data-state="listening"] .anime-halo{animation:listenPulse 1.1s ease-in-out infinite;box-shadow:0 0 0 8px #c56b4510,0 0 34px #c56b4540}
 .anime-stage[data-state="thinking"] .anime-halo{animation:thinkFloat 1.4s ease-in-out infinite;box-shadow:0 0 0 8px #c56b4510,0 0 38px #c56b4545}
 .anime-stage[data-state="responding"] .anime-halo{animation:respondGlow .8s ease-in-out infinite alternate;box-shadow:0 0 0 10px #c56b4514,0 0 42px #c56b4560}
@@ -111,7 +130,7 @@ footer{text-align:center;color:#99958b;font-size:.72rem;padding:0 0 13px}
       <path d="M68 66c7-6 15-4 19 2" fill="none" stroke="#3b2926" stroke-width="3" stroke-linecap="round"/>
       <g class="anime-eyes" fill="#342329"><ellipse cx="46" cy="77" rx="5.2" ry="8"/><ellipse cx="76" cy="77" rx="5.2" ry="8"/><circle cx="48" cy="74" r="2" fill="#fff"/><circle cx="78" cy="74" r="2" fill="#fff"/></g>
       <path d="M56 91q4 4 8 0" fill="none" stroke="#a95162" stroke-width="2" stroke-linecap="round"/>
-      <path d="M49 101q11 10 22 0" fill="none" stroke="#9d4c50" stroke-width="2.5" stroke-linecap="round"/>
+      <path id="animeMouth" d="M49 101q11 10 22 0" fill="none" stroke="#9d4c50" stroke-width="2.5" stroke-linecap="round"/>
       <path d="M25 124q35-18 70 0v12H25Z" fill="#c56b45"/>
       <path d="M34 119 20 93M86 119l14-26" stroke="#292821" stroke-width="7" stroke-linecap="round"/>
       <path d="m60 111 4 7 8 1-6 5 1 8-7-4-7 4 1-8-6-5 8-1Z" fill="#f7c16b"/>
@@ -129,6 +148,7 @@ footer{text-align:center;color:#99958b;font-size:.72rem;padding:0 0 13px}
    <textarea id="prompt" rows="1" maxlength="8000" placeholder="Écris ton message à Yvan.IA…" aria-label="Ton message" required></textarea>
    <div class="controls">
     <div class="left-controls">
+     <button class="icon-btn" type="button" id="voice-toggle" aria-label="Désactiver la voix de Yvan" aria-pressed="true" title="Voix activée"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M16 9a5 5 0 0 1 0 6M18.5 6.5a8.5 8.5 0 0 1 0 11"/></svg></button>
      <button class="icon-btn" type="button" id="mic" aria-label="Dicter un message" title="Dicter un message"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 10.5a7 7 0 0 0 14 0M12 17.5v4m-4 0h8"/></svg></button>
      <button class="icon-btn" type="button" id="clear" aria-label="Nouvelle conversation" title="Nouvelle conversation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg></button>
      <span class="small" id="voice-status">Dictée vocale selon ton navigateur</span>
@@ -142,7 +162,8 @@ footer{text-align:center;color:#99958b;font-size:.72rem;padding:0 0 13px}
 <script>
 const $=selector=>document.querySelector(selector);
 const messages=$("#messages"),welcome=$("#welcome"),form=$("#chat"),promptInput=$("#prompt"),send=$("#send"),mic=$("#mic"),voiceStatus=$("#voice-status"),statusEl=$(".status");
-const animeStage=$("#animeStage"),animeCaption=$("#animeCaption");
+const animeStage=$("#animeStage"),animeCaption=$("#animeCaption"),voiceToggle=$("#voice-toggle");
+let voiceEnabled=true;
 function setAnimeState(state){
  if(!animeStage)return;
  animeStage.dataset.state=state;
@@ -150,6 +171,38 @@ function setAnimeState(state){
  if(animeCaption)animeCaption.textContent=labels[state]||labels.idle;
 }
 const HISTORY_KEY="yvan-ia-history-v2";
+const speechSupported="speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+function speakReply(text){
+ if(!voiceEnabled||!speechSupported||!text)return false;
+ window.speechSynthesis.cancel();
+ const utterance=new SpeechSynthesisUtterance(text);
+ utterance.lang="fr-FR";utterance.rate=1;utterance.pitch=1.04;utterance.volume=1;
+ const voices=window.speechSynthesis.getVoices();
+ const frenchVoice=voices.find(v=>/^fr(-|_)/i.test(v.lang)&&/google|microsoft|français|france/i.test(v.name))
+  ||voices.find(v=>/^fr(-|_)/i.test(v.lang));
+ if(frenchVoice)utterance.voice=frenchVoice;
+ utterance.onstart=()=>{setAnimeState("speaking");voiceStatus.textContent="Yvan te parle…";};
+ utterance.onboundary=()=>{if(animeStage)animeStage.dataset.voicebeat=String(Date.now());};
+ utterance.onend=()=>{setAnimeState("idle");voiceStatus.textContent="Voix prête";};
+ utterance.onerror=()=>{setAnimeState("idle");voiceStatus.textContent="Lecture vocale indisponible";};
+ window.speechSynthesis.speak(utterance);
+ return true;
+}
+if(!speechSupported){
+ voiceEnabled=false;voiceToggle.disabled=true;voiceToggle.setAttribute("aria-pressed","false");
+ voiceToggle.title="La lecture vocale n'est pas prise en charge par ce navigateur";
+ voiceStatus.textContent="Voix non prise en charge";
+}else{
+ voiceToggle.addEventListener("click",()=>{
+  voiceEnabled=!voiceEnabled;
+  voiceToggle.setAttribute("aria-pressed",String(voiceEnabled));
+  voiceToggle.title=voiceEnabled?"Voix activée":"Voix désactivée";
+  voiceToggle.setAttribute("aria-label",voiceEnabled?"Désactiver la voix de Yvan":"Activer la voix de Yvan");
+  if(!voiceEnabled){window.speechSynthesis.cancel();setAnimeState("idle");voiceStatus.textContent="Voix désactivée";}
+  else voiceStatus.textContent="Voix activée";
+ });
+ window.speechSynthesis.getVoices();
+}
 let history=[];
 try{history=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");if(!Array.isArray(history))history=[];history=history.filter(item=>item&&["user","assistant"].includes(item.role)&&typeof item.text==="string").slice(-80);}catch(_){history=[];}
 function saveHistory(){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(-80)));}catch(_){voiceStatus.textContent="Stockage local indisponible";}}
@@ -220,10 +273,12 @@ form.addEventListener("submit",async event=>{
   waiting.textContent=response.ok&&!data.erreur?(data.reponse||"Réponse vide."):("Erreur : "+(data.erreur||"Le serveur n'a pas répondu correctement."));
   const role=response.ok&&!data.erreur?"assistant":"error";
   waiting.parentElement.className="message "+role;
-  if(role==="assistant"){setAnimeState("responding");}
-  if(role==="assistant"){history.push({role:"assistant",text:waiting.textContent});saveHistory();}
+  if(role==="assistant"){
+   history.push({role:"assistant",text:waiting.textContent});saveHistory();
+   if(!speakReply(waiting.textContent))setAnimeState("responding");
+  }
  }catch(_){waiting.textContent="Impossible de joindre Yvan.IA. Vérifie ta connexion puis réessaie.";waiting.parentElement.className="message error";}
- finally{setTimeout(()=>setAnimeState("idle"),2200);send.disabled=false;send.innerHTML='Envoyer <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 14-7-5 14-2-6-7-1Z"/></svg>';promptInput.focus();messages.scrollTop=messages.scrollHeight;}
+ finally{if(!voiceEnabled||!speechSupported)setTimeout(()=>setAnimeState("idle"),2200);send.disabled=false;send.innerHTML='Envoyer <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 14-7-5 14-2-6-7-1Z"/></svg>';promptInput.focus();messages.scrollTop=messages.scrollHeight;}
 });
 </script>
 </body>
