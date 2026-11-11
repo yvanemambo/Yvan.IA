@@ -189,7 +189,7 @@ function setAnimeState(state){
  const labels={idle:"Yvan est prêt à t’aider",listening:"Yvan t’écoute…",thinking:"Yvan réfléchit avec Gemini…",responding:"Yvan te répond…",speaking:"Yvan te parle…"};
  if(animeCaption)animeCaption.textContent=labels[state]||labels.idle;
 }
-const HISTORY_KEY="yvan-ia-history-v2";
+let historyKey="yvan-ia-history-v2:guest";\nlet currentUserId="";
 const speechSupported="speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 function speakReply(text){
  if(!voiceEnabled||!speechSupported||!text)return false;
@@ -271,7 +271,7 @@ authForm.addEventListener("submit",async event=>{
   if(!response.ok)throw new Error(data.erreur||"Impossible de continuer.");
   if(data.access_token){
    accessToken=data.access_token;sessionStorage.setItem("yvan-ia-access-token",accessToken);
-   setAuthenticated({email:data.user?.email||authEmail.value.trim()});authPassword.value="";authError.textContent="";
+   setAuthenticated({id:data.user?.id||"",email:data.user?.email||authEmail.value.trim()});authPassword.value="";authError.textContent="";
   }else if(authMode==="signup"){
    authError.textContent="Compte créé. Vérifie ta boîte e-mail pour confirmer ton adresse, puis connecte-toi.";
    setAuthMode("login");
