@@ -107,6 +107,25 @@ footer{text-align:center;color:#99958b;font-size:.72rem;padding:0 0 13px}
 @keyframes appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @media(max-width:650px){.app{padding:0 15px}header{height:66px}.status{font-size:.68rem;padding:7px 9px}.welcome{padding-top:54px}.welcome p{font-size:.92rem}.bubble{max-width:89%;font-size:.93rem}.small{display:none}#send{padding:11px 13px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Connexion et comptes personnels */
+.auth-panel{width:min(100%,430px);margin:clamp(36px,8vh,82px) auto 30px;padding:26px;background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:0 16px 48px #4d42300b}
+.auth-panel h2{font-size:1.55rem;font-weight:600;letter-spacing:-.04em;margin:0 0 8px}
+.auth-panel p{color:var(--muted);line-height:1.6;font-size:.9rem}
+.auth-form{display:grid;gap:11px;margin-top:18px}
+.auth-form input{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text);font:inherit;outline:none}
+.auth-form input:focus{border-color:var(--accent)}
+.auth-form button{border:0;border-radius:12px;background:#292821;color:white;padding:13px;font:inherit;font-weight:650;cursor:pointer}
+.auth-form button:disabled{opacity:.55}
+.auth-switch{display:flex;gap:8px;margin-top:13px}
+.auth-switch button{background:transparent;border:0;color:var(--accent-dark);padding:6px 0;font:inherit;cursor:pointer}
+.auth-error{min-height:1.3em;color:#a44d45;font-size:.85rem}
+.auth-note{font-size:.78rem;color:var(--muted)}
+.account-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:12px 0 0;font-size:.8rem;color:var(--muted)}
+.account-bar button{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:7px 10px;color:var(--text);cursor:pointer}
+body:not(.authenticated) #welcome,body:not(.authenticated) #messages,body:not(.authenticated) .composer-wrap{display:none}
+body.authenticated #authPanel{display:none}
+@media(max-width:600px){.auth-panel{margin-top:36px;padding:21px}}
 </style>
 </head>
 <body>
@@ -143,7 +162,7 @@ footer{text-align:center;color:#99958b;font-size:.72rem;padding:0 0 13px}
   <p>Pose-moi une question, demande-moi de t'expliquer quelque chose ou de t'aider dans ton travail.</p>
  </section>
  <section id="messages" aria-live="polite" aria-label="Historique de la conversation"></section>
- <div class="composer-wrap">
+ <div class="account-bar"><span id="accountEmail"></span><button id="logoutButton" type="button">Se déconnecter</button></div>\n <div class="composer-wrap">
   <form class="composer" id="chat">
    <textarea id="prompt" rows="1" maxlength="8000" placeholder="Écris ton message à Yvan.IA…" aria-label="Ton message" required></textarea>
    <div class="controls">
@@ -162,7 +181,7 @@ footer{text-align:center;color:#99958b;font-size:.72rem;padding:0 0 13px}
 <script>
 const $=selector=>document.querySelector(selector);
 const messages=$("#messages"),welcome=$("#welcome"),form=$("#chat"),promptInput=$("#prompt"),send=$("#send"),mic=$("#mic"),voiceStatus=$("#voice-status"),statusEl=$(".status");
-const animeStage=$("#animeStage"),animeCaption=$("#animeCaption"),voiceToggle=$("#voice-toggle");
+const animeStage=$("#animeStage"),animeCaption=$("#animeCaption"),voiceToggle=$("#voice-toggle");\nconst authForm=$("#authForm"),authEmail=$("#authEmail"),authPassword=$("#authPassword"),authError=$("#authError"),authSubmit=$("#authSubmit"),authToggle=$("#authToggle");\nlet authMode="login",accessToken=sessionStorage.getItem("yvan-ia-access-token")||"";
 let voiceEnabled=true;
 function setAnimeState(state){
  if(!animeStage)return;
@@ -220,22 +239,66 @@ function renderHistory(){
  welcome.hidden=history.length>0;
 }
 renderHistory();
+function setAuthMode(mode){
+ authMode=mode;$("#authTitle").textContent=mode==="signup"?"Créer ton espace Yvan.IA":"Bienvenue sur Yvan.IA";
+ $("#authDescription").textContent=mode==="signup"?"Ton espace sera privé et réservé à ton compte.":"Connecte-toi pour retrouver ton espace personnel et tes appareils.";
+ authSubmit.textContent=mode==="signup"?"Créer mon compte":"Se connecter";
+ authToggle.textContent=mode==="signup"?"J'ai déjà un compte":"Créer un compte";
+ authPassword.autocomplete=mode==="signup"?"new-password":"current-password";
+ authError.textContent="";
+}
+authToggle.addEventListener("click",()=>setAuthMode(authMode==="login"?"signup":"login"));
+function setAuthenticated(user){
+ document.body.classList.toggle("authenticated",Boolean(user));
+ $("#accountEmail").textContent=user?"Connecté : "+(user.email||"compte Yvan.IA"):"";
+ welcome.hidden=history.length>0;
+}
+async function checkSession(){
+ if(!accessToken){setAuthenticated(null);return;}
+ try{
+  const response=await fetch("/auth/moi",{headers:{Authorization:"Bearer "+accessToken},cache:"no-store"});
+  const data=await response.json();
+  if(!response.ok)throw new Error("session");
+  setAuthenticated(data.utilisateur);
+ }catch(_){accessToken="";sessionStorage.removeItem("yvan-ia-access-token");setAuthenticated(null);}
+}
+authForm.addEventListener("submit",async event=>{
+ event.preventDefault();authSubmit.disabled=true;authError.textContent="Connexion à Supabase…";
+ const endpoint=authMode==="signup"?"/auth/inscription":"/auth/connexion";
+ try{
+  const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:authEmail.value.trim(),mot_de_passe:authPassword.value})});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.erreur||"Impossible de continuer.");
+  if(data.access_token){
+   accessToken=data.access_token;sessionStorage.setItem("yvan-ia-access-token",accessToken);
+   setAuthenticated({email:data.user?.email||authEmail.value.trim()});authPassword.value="";authError.textContent="";
+  }else if(authMode==="signup"){
+   authError.textContent="Compte créé. Vérifie ta boîte e-mail pour confirmer ton adresse, puis connecte-toi.";
+   setAuthMode("login");
+  }else{throw new Error("La connexion n'a pas renvoyé de session valide.");}
+ }catch(error){authError.textContent=error.message;}
+ finally{authSubmit.disabled=false;}
+});
+$("#logoutButton").addEventListener("click",async()=>{
+ if(accessToken){try{await fetch("/auth/deconnexion",{method:"POST",headers:{Authorization:"Bearer "+accessToken}});}catch(_){}}
+ accessToken="";sessionStorage.removeItem("yvan-ia-access-token");setAuthenticated(null);setAuthMode("login");
+});
 async function checkHealth(){
  try{
   const response=await fetch("/sante",{cache:"no-store"});
   if(!response.ok)throw new Error("health");
   const data=await response.json();
-  const ready=Boolean(data.ready);
+  const ready=Boolean(data.gemini_configured);
   statusEl.classList.toggle("pending",!ready);
   statusEl.classList.remove("offline");
-  statusEl.lastChild.textContent=ready?"Gemini configuré":"Configuration requise";
+  statusEl.lastChild.textContent=!data.supabase_configured?"Comptes à configurer":(ready?"Gemini configuré":"Configuration requise");
  }catch(_){
   statusEl.classList.remove("pending");
   statusEl.classList.add("offline");
   statusEl.lastChild.textContent="Serveur inaccessible";
  }
 }
-checkHealth();
+checkHealth();\ncheckSession();
 function resizeInput(){promptInput.style.height="auto";promptInput.style.height=Math.min(promptInput.scrollHeight,160)+"px";}
 promptInput.addEventListener("input",resizeInput);
 promptInput.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.isComposing){event.preventDefault();form.requestSubmit();}});
@@ -268,7 +331,7 @@ form.addEventListener("submit",async event=>{
  addMessage(text,"user");welcome.hidden=true;setAnimeState("thinking");promptInput.value="";resizeInput();send.disabled=true;send.textContent="Réflexion…";
  const waiting=addMessage("Yvan.IA prépare une réponse…","assistant",false);
  try{
-  const response=await fetch("/commande",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:text,historique:previous})});
+  const response=await fetch("/commande",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({texte:text,historique:previous})});
   const data=await response.json();
   waiting.textContent=response.ok&&!data.erreur?(data.reponse||"Réponse vide."):("Erreur : "+(data.erreur||"Le serveur n'a pas répondu correctement."));
   const role=response.ok&&!data.erreur?"assistant":"error";
@@ -277,7 +340,7 @@ form.addEventListener("submit",async event=>{
    history.push({role:"assistant",text:waiting.textContent});saveHistory();
    if(!speakReply(waiting.textContent))setAnimeState("responding");
   }else{setAnimeState("idle");}
- }catch(_){setAnimeState("idle");waiting.textContent="Impossible de joindre Yvan.IA. Vérifie ta connexion puis réessaie.";waiting.parentElement.className="message error";}
+ }catch(error){setAnimeState("idle");waiting.textContent=error.message||"Impossible de joindre Yvan.IA. Vérifie ta connexion puis réessaie.";waiting.parentElement.className="message error";}
  finally{if(!voiceEnabled||!speechSupported)setTimeout(()=>setAnimeState("idle"),2200);send.disabled=false;send.innerHTML='Envoyer <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 14-7-5 14-2-6-7-1Z"/></svg>';promptInput.focus();messages.scrollTop=messages.scrollHeight;}
 });
 </script>
