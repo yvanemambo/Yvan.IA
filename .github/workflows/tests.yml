@@ -2,7 +2,7 @@ name: Vérifications Yvan.IA
 
 on:
   push:
-    branches: ["main", "corrections/**"]
+    branches: ["main", "corrections/**", "feature/site-personnel-yvan-ia"]
   pull_request:
     branches: ["main"]
 
