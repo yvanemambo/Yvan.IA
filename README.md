@@ -1,6 +1,6 @@
 # Yvan.IA
 
-Yvan.IA est un assistant personnel en français, construit avec Flask et Google Gemini. Le projet est préparé pour Vercel.
+Yvan.IA est un assistant personnel en français, construit avec Flask et Google Gemini. Le projet fonctionne avec Flask et peut être hébergé sur Render ou Vercel.
 
 ## Fonctionnalités
 - Chat avec Gemini (modèle configurable).
@@ -24,13 +24,13 @@ Yvan.IA est un assistant personnel en français, construit avec Flask et Google 
 - `dossier_mbo/` : fichiers consultables en lecture seule.
 
 ## Variables d'environnement
-Dans les paramètres du projet Vercel, configure :
+Dans Render, ouvre le service Yvan.IA puis Environment et configure :
 - `GEMINI_API_KEY` : clé privée Google AI Studio.
 - `MBO_CODE` : code privé utilisé par les utilisateurs dans l'assistant.
 - `ADMIN_CODE` : code secret réservé à l'administrateur. Il doit être différent de `MBO_CODE`.
 - `GEMINI_MODEL` : modèle disponible sur ton compte. Valeur par défaut : `gemini-3.8-flash`.
 
-Configure `ADMIN_CODE` dans les environnements Vercel que tu souhaites tester (Preview/Production séparément). Choisis un code long et unique. Ne le mets jamais dans GitHub, dans le code source ou dans un message. Ne partage pas ce code avec les utilisateurs.
+Configure `ADMIN_CODE` dans les variables d’environnement Render que tu souhaites tester (Preview/Production séparément). Choisis un code long et unique. Ne le mets jamais dans GitHub, dans le code source ou dans un message. Ne partage pas ce code avec les utilisateurs.
 
 Ne place jamais les vraies clés dans GitHub, dans le code ou dans un message. Le fichier `.env.example` ne contient que des exemples vides.
 
@@ -42,7 +42,7 @@ Ne place jamais les vraies clés dans GitHub, dans le code ou dans un message. L
 - Le code administrateur est conservé uniquement dans la session de l'onglet navigateur et n'est pas enregistré dans le stockage local permanent.
 
 ### Limites des statistiques
-Les compteurs de requêtes/réponses/erreurs sont en mémoire dans un processus. Sur Vercel, plusieurs instances peuvent fonctionner en parallèle et les compteurs peuvent être remis à zéro au redémarrage. Ils ne sont donc ni un total global fiable, ni un historique de facturation. Le tableau de bord n'affiche pas encore les visiteurs uniques, les comptes clients, les abonnements ou les paiements. Pour ces statistiques, il faudra ajouter une base de données persistante et un système de comptes.
+Les compteurs de requêtes/réponses/erreurs sont en mémoire dans un processus. Sur Render, plusieurs instances peuvent fonctionner en parallèle et les compteurs peuvent être remis à zéro au redémarrage. Ils ne sont donc ni un total global fiable, ni un historique de facturation. Le tableau de bord n'affiche pas encore les visiteurs uniques, les comptes clients, les abonnements ou les paiements. Pour ces statistiques, il faudra ajouter une base de données persistante et un système de comptes.
 
 ## Vérification
 - `/sante` indique si Gemini, le code utilisateur et le code administrateur sont configurés (sans révéler leurs valeurs).
@@ -52,7 +52,7 @@ Les compteurs de requêtes/réponses/erreurs sont en mémoire dans un processus.
 
 ## Limites à connaître
 - L'historique est conservé dans le stockage local du navigateur. Il n'est pas synchronisé entre appareils et peut disparaître si les données du navigateur sont supprimées.
-- Sur Vercel, le système de fichiers de la fonction n'est pas un stockage permanent. Les brouillons y sont donc renvoyés à l'écran pour être copiés, pas enregistrés durablement.
+- Sur Render, le système de fichiers de la fonction n'est pas un stockage permanent. Les brouillons y sont donc renvoyés à l'écran pour être copiés, pas enregistrés durablement.
 - Les fichiers de `dossier_mbo/` sont ceux du dépôt et sont accessibles en lecture seule. L'application ne peut pas parcourir les dossiers du PC personnel de l'utilisateur.
 - Les PDF scannés sans couche texte ne peuvent pas être lus sans OCR.
 - La dictée vocale dépend du navigateur et de ses autorisations micro.
