@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#100b20">
+<meta name="description" content="Yvan.IA, ton assistant intelligent personnel en français.">
+<title>Yvan.IA — Assistant personnel</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#100b20;color:#f5f1ff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;max-width:900px;padding:16px;margin-inline:auto}
+header{text-align:center;padding:18px 12px 12px}
+h1{font-size:1.8rem;letter-spacing:-.04em;margin:0}
+h1 span{color:#a78bfa}
+header p{color:#b9afd1;margin:7px 0 0}
+#messages{flex:1;min-height:48vh;max-height:68vh;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:20px 4px}
+.bubble{max-width:min(88%,720px);padding:13px 16px;border-radius:18px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.user{align-self:flex-end;background:#7045c7;border-bottom-right-radius:5px}
+.assistant{align-self:flex-start;background:#211a35;border:1px solid #382b53;border-bottom-left-radius:5px}
+.error{align-self:center;color:#ffabb5;background:#321c2b}
+#settings{margin:12px 0;color:#b9afd1;font-size:.9rem}
+#settings input,#prompt{width:100%;background:#211a35;border:1px solid #49376d;color:white;border-radius:13px;padding:14px;font-size:16px;outline:none}
+#settings input:focus,#prompt:focus{border-color:#a78bfa}
+#settings input{margin-top:8px}
+form{display:flex;gap:9px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+#prompt{min-width:0;flex:1}
+button{border:0;border-radius:13px;padding:12px 18px;background:#8055d6;color:white;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+footer{text-align:center;color:#817695;font-size:.78rem;padding:8px}
+@media(max-width:560px){body{padding:10px}header{padding-top:12px}h1{font-size:1.55rem}form{gap:7px}button{padding:12px}}
+</style>
+</head>
+<body>
+<header><h1>Yvan<span>.IA</span></h1><p>Ton assistant intelligent personnel</p></header>
+<main id="messages" aria-live="polite" aria-label="Conversation">
+<div class="bubble assistant">Bonjour ! Je suis Yvan.IA. Comment puis-je t'aider aujourd'hui ?</div>
+</main>
+<section id="settings" aria-label="Paramètres d'accès">
+<label for="access">Code d'accès</label>
+<input id="access" type="password" autocomplete="current-password" placeholder="Entre ton code d'accès">
+</section>
+<form id="chat">
+<input id="prompt" maxlength="8000" placeholder="Écris ton message…" autocomplete="off" required aria-label="Ton message">
+<button id="send" type="submit">Envoyer</button>
+</form>
+<footer>Yvan.IA · Assistant personnel</footer>
+<script>
+const messages=document.querySelector("#messages");
+const form=document.querySelector("#chat");
+const promptInput=document.querySelector("#prompt");
+const send=document.querySelector("#send");
+const access=document.querySelector("#access");
+let conversationId;
+try{
+  conversationId=localStorage.getItem("yvan-ia-conversation")||crypto.randomUUID();
+  localStorage.setItem("yvan-ia-conversation",conversationId);
+  access.value=sessionStorage.getItem("yvan-ia-code")||"";
+}catch(error){conversationId=crypto.randomUUID()}
+access.addEventListener("change",()=>{
+  try{sessionStorage.setItem("yvan-ia-code",access.value)}catch(error){}
+});
+function addMessage(text,role){
+  const element=document.createElement("div");
+  element.className="bubble "+role;
+  element.textContent=text;
+  messages.append(element);
+  messages.scrollTop=messages.scrollHeight;
+}
+form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  const text=promptInput.value.trim();
+  if(!text||send.disabled)return;
+  if(!access.value.trim()){addMessage("Entre ton code d'accès avant d'envoyer un message.","error");access.focus();return}
+  addMessage(text,"user");
+  promptInput.value="";
+  send.disabled=true;
+  send.textContent="…";
+  try{
+    const response=await fetch("/commande",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "X-Code":access.value,
+        "X-Conversation-ID":conversationId
+      },
+      body:JSON.stringify({texte:text})
+    });
+    const data=await response.json();
+    if(!response.ok||data.erreur)addMessage(data.erreur||"Erreur serveur.","error");
+    else addMessage(data.reponse||"Réponse vide.","assistant");
+  }catch(error){
+    addMessage("Impossible de joindre Yvan.IA. Vérifie que le serveur fonctionne.","error");
+  }finally{
+    send.disabled=false;
+    send.textContent="Envoyer";
+    promptInput.focus();
+  }
+});
+</script>
+</body>
+</html>
