@@ -30,7 +30,7 @@ Yvan.IA est un assistant personnel en français, construit avec Flask et connect
    - `GEMINI_MODEL` : `gemini-3.8-flash` (ou un modèle disponible sur ton compte).
 3. Redéploie le projet dans Vercel.
 
-Ne crée pas de variable Anthropic : cette version utilise Gemini.
+Cette version utilise uniquement Gemini.
 
 ## Vérification
 
