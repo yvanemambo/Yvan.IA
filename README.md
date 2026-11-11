@@ -7,7 +7,7 @@ Yvan.IA est un assistant personnel en français, construit avec Flask et Google 
 - Session utilisateur vérifiée côté serveur avant chaque appel au chat.
 - Schéma Supabase avec isolation RLS pour profils, appareils, demandes d'association, dossiers approuvés et journal d'activité.
 - Chat avec Gemini (modèle configurable).
-- Historique local, limité et nettoyé avant envoi à l'API.
+- Historique local de secours et synchronisation cloud privée via Supabase (après configuration serveur).
 - Dictée vocale selon les capacités et autorisations du navigateur.
 - Lecture des fichiers TXT, MD, CSV et PDF placés dans `dossier_mbo/`.
 - Liste des dossiers autorisés.
@@ -28,16 +28,16 @@ Yvan.IA est un assistant personnel en français, construit avec Flask et Google 
 ## Configuration Supabase (obligatoire pour les comptes)
 
 1. Le projet Supabase dédié Yvan.IA est créé dans l'organisation yvan (région eu-west-1).
-2. Les migrations du dossier supabase/migrations doivent être exécutées dans l'ordre : 202611110001_initial_accounts_devices.sql puis 202611110002_lock_down_profile_trigger_function.sql.
-3. L'initialisation de ces deux migrations a déjà été appliquée et vérifiée sur le projet Supabase Yvan.IA.
+2. Les migrations du dossier supabase/migrations sont exécutées dans l'ordre : 202611110001_initial_accounts_devices.sql, 202611110002_lock_down_profile_trigger_function.sql, puis 202611110003_persistent_chat_history.sql.
+3. Ces trois migrations ont été appliquées au projet Supabase Yvan.IA. Les cinq tables appareils/profils et la table chat_history sont présentes avec RLS activé.
 4. Dans Project Settings > API, l'URL du projet et la clé publique (publishable/anon) sont disponibles.
-5. Dans Render > Environment, ajoute SUPABASE_URL et SUPABASE_ANON_KEY avant de déployer cette branche.
+5. Dans Render > Environment, configure SUPABASE_URL et SUPABASE_ANON_KEY avant le déploiement de la branche de fonctionnalité.
 6. Dans Supabase > Authentication > URL Configuration, configure l'URL de ton site Render comme URL du site et ajoute-la aux URL de redirection.
 7. Dans Supabase > Authentication > Providers > Email, vérifie la politique de confirmation d'adresse e-mail.
 
 N'utilise jamais la clé service_role dans le navigateur ou dans GitHub. Le serveur utilise la clé publique anon et le jeton de session de l'utilisateur. Les tables personnelles ont Row Level Security (RLS) activé.
 
-Le formulaire de connexion et d'inscription est prêt côté interface et les routes serveur appellent Supabase Auth. Tant que les deux variables Supabase ne sont pas configurées et que la migration SQL n'est pas exécutée, les comptes ne peuvent pas fonctionner et le chat reste protégé.
+Le formulaire de connexion et d'inscription appelle Supabase Auth. Les routes `/historique` lisent et enregistrent les discussions dans `chat_history` à l'aide du jeton de l'utilisateur et d'une fonction SQL contrôlée par `auth.uid()`. Tant que la branche contenant ces changements n'est pas déployée, le site en ligne n'utilise pas encore ces fonctions.
 
 ## Variables d'environnement
 Dans Render, ouvre le service Yvan.IA puis Environment et configure :
