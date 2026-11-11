@@ -1,59 +1,54 @@
 # Yvan.IA
 
-Yvan.IA est un assistant personnel en français, construit avec Flask et connecté à **Google Gemini**. Le projet est préparé pour un déploiement sur **Vercel** à partir de GitHub.
+Yvan.IA est un assistant personnel en français, construit avec Flask et Google Gemini. Le déploiement cible Vercel.
 
-## Fonctionnalités actuelles
-
-- Conversation avec un modèle Gemini configurable.
-- Historique récent conservé temporairement en mémoire d'instance.
+## Fonctionnalités
+- Chat avec Gemini (modèle configurable).
+- Historique des conversations conservé dans le navigateur de l'utilisateur.
+- Dictée vocale lorsque le navigateur prend en charge Web Speech API.
 - Lecture de fichiers TXT, MD et CSV placés dans `dossier_mbo/`.
 - Liste des dossiers et fichiers autorisés.
-- Rédaction de brouillons d'e-mails (aucun e-mail n'est envoyé).
-- Code d'accès à l'application.
-
-> Les commandes vocales ne sont pas encore implémentées. L'historique en mémoire peut être perdu lorsqu'une fonction Vercel redémarre ou change d'instance. Les brouillons écrits sur Vercel sont temporaires. Pour conserver durablement les conversations et les brouillons, il faudra connecter une base de données ou un stockage persistant.
+- Création de brouillons d'e-mails (aucun e-mail n'est envoyé).
+- Code d'accès privé.
+- Interface responsive pour ordinateur et mobile.
 
 ## Structure
-
-- `server.py` : application Flask, API et connexion à Gemini.
+- `server.py` : application Flask et connexion Gemini.
+- `api/index.py` : point d'entrée Vercel.
 - `public/index.html` : interface web.
-- `vercel.json` : configuration Vercel.
-- `requirements.txt` : dépendances Python.
-- `dossier_mbo/` : fichiers consultables par l'assistant.
+- `vercel.json` : routage vers la fonction Python.
+- `requirements.txt` : dépendances.
+- `dossier_mbo/` : fichiers consultables en lecture seule.
 
-## Déploiement Vercel
+## Variables Vercel obligatoires
+Dans **Project → Settings → Environment Variables**, ajoute les variables suivantes pour Production, Preview et Development :
+- `GEMINI_API_KEY` : clé privée Google AI Studio.
+- `MBO_CODE` : code d'accès privé choisi par le propriétaire.
+- `GEMINI_MODEL` : modèle disponible sur le compte, par défaut `gemini-2.5-flash`.
 
-1. Importe le dépôt `yvanemambo/Yvan.IA` dans Vercel.
-2. Dans **Project → Settings → Environment Variables**, ajoute :
-   - `GEMINI_API_KEY` : ta clé API créée dans Google AI Studio.
-   - `MBO_CODE` : ton code secret d'accès.
-   - `GEMINI_MODEL` : `gemini-3.8-flash` (ou un modèle disponible sur ton compte).
-3. Redéploie le projet dans Vercel.
+Ne place jamais les vraies clés dans GitHub, dans le code ou dans un message.
 
-Cette version utilise uniquement Gemini.
+## Déploiement
+Le projet doit être relié au dépôt GitHub `yvanemambo/Yvan.IA`. La branche de production est `main`. Après connexion Git, fusionner les changements dans `main` déclenche le déploiement Vercel.
 
 ## Vérification
+- `/sante` doit renvoyer un JSON avec `status: ok` et `provider: Gemini`.
+- Envoie un message depuis l'interface pour tester la clé et le modèle.
+- Teste le bouton micro avec un navigateur compatible et l'autorisation micro.
 
-- Ouvre ton domaine Vercel.
-- Ouvre `https://TON-DOMAINE.vercel.app/sante` : la réponse doit contenir `"status":"ok"` et `"provider":"Gemini"`.
-- Envoie un message depuis l'interface.
+## Limites importantes
+- L'historique est conservé dans le stockage local du navigateur. Il n'est pas synchronisé entre appareils et peut être effacé si les données du navigateur sont supprimées.
+- Vercel n'offre pas de disque persistant à la fonction. Les brouillons créés sur Vercel sont temporaires.
+- Les fichiers de `dossier_mbo/` sont ceux du dépôt et sont accessibles en lecture seule. L'application ne peut pas parcourir les dossiers du PC personnel de l'utilisateur.
+- La dictée vocale dépend du navigateur et de ses autorisations micro.
+- Le code d'accès simple protège l'API, mais pour une application publique multi-utilisateurs, il faudra ajouter un vrai système de comptes et une base de données.
 
-## Lancer localement sur Windows / PowerShell
-
+## Développement local (Windows / PowerShell)
 ```powershell
 python -m pip install -r requirements.txt
 $env:GEMINI_API_KEY="ta_cle_gemini"
-$env:MBO_CODE="choisis-un-code-secret"
-$env:GEMINI_MODEL="gemini-3.8-flash"
+$env:MBO_CODE="ton-code-secret"
+$env:GEMINI_MODEL="gemini-2.5-flash"
 python server.py
 ```
-
-Ouvre ensuite http://127.0.0.1:5000.
-
-## Sécurité et limites
-
-- Ne publie jamais `GEMINI_API_KEY` ni `MBO_CODE` dans GitHub.
-- Configure les secrets dans les variables d'environnement Vercel.
-- Les fichiers de `dossier_mbo/` sont intégrés au déploiement en lecture seule.
-- Vercel ne fournit pas de disque persistant : l'historique en mémoire et les brouillons temporaires ne sont pas durables.
-- Ce projet est indépendant de STARS AI.
+Puis ouvre http://127.0.0.1:5000.
