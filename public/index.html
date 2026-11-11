@@ -167,7 +167,7 @@ let voiceEnabled=true;
 function setAnimeState(state){
  if(!animeStage)return;
  animeStage.dataset.state=state;
- const labels={idle:"Yvan est prêt à t’aider",listening:"Yvan t’écoute…",thinking:"Yvan réfléchit avec Gemini…",responding:"Yvan te répond…"};
+ const labels={idle:"Yvan est prêt à t’aider",listening:"Yvan t’écoute…",thinking:"Yvan réfléchit avec Gemini…",responding:"Yvan te répond…",speaking:"Yvan te parle…"};
  if(animeCaption)animeCaption.textContent=labels[state]||labels.idle;
 }
 const HISTORY_KEY="yvan-ia-history-v2";
@@ -276,8 +276,8 @@ form.addEventListener("submit",async event=>{
   if(role==="assistant"){
    history.push({role:"assistant",text:waiting.textContent});saveHistory();
    if(!speakReply(waiting.textContent))setAnimeState("responding");
-  }
- }catch(_){waiting.textContent="Impossible de joindre Yvan.IA. Vérifie ta connexion puis réessaie.";waiting.parentElement.className="message error";}
+  }else{setAnimeState("idle");}
+ }catch(_){setAnimeState("idle");waiting.textContent="Impossible de joindre Yvan.IA. Vérifie ta connexion puis réessaie.";waiting.parentElement.className="message error";}
  finally{if(!voiceEnabled||!speechSupported)setTimeout(()=>setAnimeState("idle"),2200);send.disabled=false;send.innerHTML='Envoyer <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 14-7-5 14-2-6-7-1Z"/></svg>';promptInput.focus();messages.scrollTop=messages.scrollHeight;}
 });
 </script>
