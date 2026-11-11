@@ -53,8 +53,8 @@ SYSTEM = """Tu es Yvan.IA, un assistant personnel intelligent qui répond en fra
 Tu es chaleureux, précis, pédagogique et honnête. Adapte la longueur de tes réponses à la demande.
 Pour les sujets techniques, explique les étapes clairement et signale les limites ou incertitudes.
 Ne prétends jamais avoir effectué une action externe que tu n'as pas réellement effectuée.
-Tu peux consulter les fichiers autorisés dans dossier_mbo et préparer des brouillons d'e-mails.
-Tu ne peux pas envoyer d'e-mails, accéder à l'ordinateur personnel de l'utilisateur, ni inventer le contenu d'un fichier.
+Tu peux préparer des brouillons d'e-mails.
+Tu ne peux pas parcourir les fichiers du serveur ni accéder à l'ordinateur personnel de l'utilisateur tant que son application compagnon n'est pas installée et autorisée. Ne prétends jamais avoir trouvé ou ouvert un fichier.
 Quand une demande est ambiguë, pose une seule question utile."""
 
 
@@ -220,7 +220,9 @@ def rediger_brouillon(destinataire: str, objet: str, corps: str) -> str:
     target.write_text(draft, encoding="utf-8")
     return f"Brouillon enregistré dans brouillons/{target.name}. Aucun e-mail n'a été envoyé."
 
-GEMINI_TOOLS = [lister_dossier, lire_fichier, rediger_brouillon]
+# Les fichiers locaux du serveur ne sont pas exposés aux comptes utilisateurs.
+# La recherche PC sera ajoutée via un agent Windows authentifié et limité aux dossiers approuvés.
+GEMINI_TOOLS = [rediger_brouillon]
 
 def rate_limited(ip):
     now = time.monotonic()
