@@ -175,7 +175,6 @@ def admin_page():
 @app.get("/sante")
 def health():
     gemini_ready = bool(os.getenv("GEMINI_API_KEY", "").strip() and MODEL)
-    access_ready = bool(os.getenv("MBO_CODE", "").strip())
     return jsonify(
         status="ok",
         app="Yvan.IA",
@@ -183,9 +182,8 @@ def health():
         model=MODEL,
         platform=PLATFORM,
         gemini_configured=gemini_ready,
-        access_configured=access_ready,
         admin_configured=bool(os.getenv("ADMIN_CODE", "").strip()),
-        ready=gemini_ready and access_ready,
+        ready=gemini_ready,
     )
 
 @app.get("/admin/metrics")
@@ -201,7 +199,6 @@ def admin_metrics():
         provider="Gemini",
         model=MODEL,
         gemini_configured=gemini_ready,
-        access_configured=bool(os.getenv("MBO_CODE", "").strip()),
         admin_configured=True,
         platform=PLATFORM,
         metrics=dict(metrics),
@@ -210,11 +207,6 @@ def admin_metrics():
 
 @app.post("/commande")
 def command():
-    access_code = os.getenv("MBO_CODE", "").strip()
-    if not access_code:
-        return jsonify(erreur="L'accès n'est pas encore configuré. Ajoute MBO_CODE dans les variables d’environnement de Render."), 503
-    if not hmac.compare_digest(request.headers.get("X-Code", ""), access_code):
-        return jsonify(erreur="Code d'accès incorrect."), 401
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
     if rate_limited(ip):
         return jsonify(erreur="Trop de demandes en peu de temps. Attends une minute puis réessaie."), 429
