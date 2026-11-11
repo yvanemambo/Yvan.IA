@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from pypdf import PdfWriter
 
 os.environ.setdefault("MBO_CODE", "test-secret")
 from server import (
@@ -83,3 +84,15 @@ def test_reader_rejects_unsupported_file(tmp_path, monkeypatch):
     monkeypatch.setattr(server, "DATA", tmp_path)
     (tmp_path / "script.py").write_text("print('no')", encoding="utf-8")
     assert "format non autorisé" in lire_fichier("script.py")
+
+
+def test_pdf_reader_handles_textless_pdf(tmp_path, monkeypatch):
+    import server
+
+    monkeypatch.setattr(server, "DATA", tmp_path)
+    pdf_path = tmp_path / "empty.pdf"
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    with pdf_path.open("wb") as stream:
+        writer.write(stream)
+    assert "Aucun texte extractible" in lire_fichier("empty.pdf")
