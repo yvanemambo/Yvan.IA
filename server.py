@@ -159,6 +159,87 @@ def auth_logout():
             pass
     return jsonify(ok=True)
 
+def supabase_data_request(path, method="GET", payload=None, access_token=""):
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY or not access_token:
+        raise RuntimeError("Session Supabase requise.")
+    headers = {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + access_token,
+        "Content-Type": "application/json",
+    }
+    body = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(SUPABASE_URL + path, data=body, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=12) as response:
+            raw = response.read().decode("utf-8")
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as exc:
+        raise ValueError("Supabase a refusé l'accès à l'historique.") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise RuntimeError("Historique Supabase temporairement indisponible.") from exc
+
+
+def bearer_token():
+    header = request.headers.get("Authorization", "")
+    return header[7:].strip() if header.startswith("Bearer ") else ""
+
+
+def clean_client_history(raw):
+    if not isinstance(raw, list):
+        return []
+    cleaned = []
+    total = 0
+    for item in raw[-80:]:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        content = item.get("text")
+        if role not in {"user", "assistant"} or not isinstance(content, str):
+            continue
+        content = content.strip()[-4000:]
+        if not content:
+            continue
+        if total + len(content) > 24000:
+            break
+        cleaned.append({"role": role, "text": content})
+        total += len(content)
+    return cleaned
+
+
+@app.get("/historique")
+def get_chat_history():
+    user = current_user()
+    if not user:
+        return jsonify(erreur="Connecte-toi pour accéder à ton historique."), 401
+    try:
+        rows = supabase_data_request(
+            "/rest/v1/chat_history?select=messages&user_id=eq." + user["id"] + "&limit=1",
+            access_token=bearer_token(),
+        )
+        messages = rows[0].get("messages", []) if isinstance(rows, list) and rows else []
+        return jsonify(messages=clean_client_history(messages))
+    except (ValueError, RuntimeError) as exc:
+        return jsonify(erreur=str(exc)), 503
+
+
+@app.put("/historique")
+def save_chat_history():
+    user = current_user()
+    if not user:
+        return jsonify(erreur="Connecte-toi pour enregistrer ton historique."), 401
+    data = request.get_json(silent=True) or {}
+    messages = clean_client_history(data.get("messages"))
+    try:
+        supabase_data_request(
+            "/rest/v1/rpc/save_yvan_chat_history",
+            method="POST",
+            payload={"p_messages": messages},
+            access_token=bearer_token(),
+        )
+        return jsonify(ok=True, count=len(messages))
+    except (ValueError, RuntimeError) as exc:
+        return jsonify(erreur=str(exc)), 503
+
 def safe_path(relative):
     if not isinstance(relative, str) or not relative.strip():
         raise ValueError("Chemin manquant.")
