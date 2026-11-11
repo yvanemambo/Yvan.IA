@@ -15,7 +15,7 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024
 histories = {}
 
-SYSTEM = """Tu es MBO.IA, un assistant personnel qui répond en français.
+SYSTEM = """Tu es Yvan.IA, un assistant personnel qui répond en français.
 Sois utile, clair et honnête. Ne prétends pas avoir effectué une action qui n'a pas été réalisée.
 Tu peux consulter les fichiers autorisés et enregistrer des brouillons, mais tu n'envoies aucun e-mail."""
 
@@ -63,7 +63,7 @@ def home():
 
 @app.get("/sante")
 def health():
-    return jsonify(status="ok", app="MBO.IA", model=MODEL)
+    return jsonify(status="ok", app="Yvan.IA", model=MODEL)
 
 @app.post("/commande")
 def command():
@@ -113,10 +113,10 @@ def command():
         app.logger.exception("Erreur API Anthropic")
         return jsonify(erreur=f"Erreur du service IA (HTTP {exc.status_code}). Vérifie le modèle et ta clé API."), 502
     except Exception:
-        app.logger.exception("Erreur inattendue MBO.IA")
+        app.logger.exception("Erreur inattendue Yvan.IA")
         return jsonify(erreur="Une erreur inattendue est survenue. Consulte le terminal du serveur."), 500
 
 if __name__ == "__main__":
-    print("MBO.IA : ouvre http://127.0.0.1:5000 sur cet ordinateur.")
+    print("Yvan.IA : ouvre http://127.0.0.1:5000 sur cet ordinateur.")
     print("Pour un téléphone, utilise l'adresse IP locale de cet ordinateur sur le même Wi-Fi.")
     app.run(host="0.0.0.0", port=5000, debug=False)
