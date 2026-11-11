@@ -15,6 +15,7 @@ BASE = Path(__file__).resolve().parent
 DATA = (BASE / "dossier_mbo").resolve()
 PUBLIC = BASE / "public"
 IS_VERCEL = os.getenv("VERCEL") == "1"
+PLATFORM = "Render" if os.getenv("RENDER") else ("Vercel" if IS_VERCEL else "local")
 DRAFTS = (Path("/tmp/yvan-ia/brouillons") if IS_VERCEL else DATA / "brouillons").resolve()
 DRAFTS.mkdir(parents=True, exist_ok=True)
 
@@ -180,7 +181,7 @@ def health():
         app="Yvan.IA",
         provider="Gemini",
         model=MODEL,
-        platform="Vercel" if IS_VERCEL else "local",
+        platform=PLATFORM,
         gemini_configured=gemini_ready,
         access_configured=access_ready,
         admin_configured=bool(os.getenv("ADMIN_CODE", "").strip()),
@@ -190,7 +191,7 @@ def health():
 @app.get("/admin/metrics")
 def admin_metrics():
     if not os.getenv("ADMIN_CODE", "").strip():
-        return jsonify(erreur="Le tableau de bord n'est pas configuré. Ajoute ADMIN_CODE dans Vercel."), 503
+        return jsonify(erreur="Le tableau de bord n'est pas configuré. Ajoute ADMIN_CODE dans les variables d’environnement de Render."), 503
     if not admin_authorized():
         return jsonify(erreur="Code administrateur incorrect."), 401
 
@@ -202,7 +203,7 @@ def admin_metrics():
         gemini_configured=gemini_ready,
         access_configured=bool(os.getenv("MBO_CODE", "").strip()),
         admin_configured=True,
-        platform="Vercel" if IS_VERCEL else "local",
+        platform=PLATFORM,
         metrics=dict(metrics),
         metrics_scope="Ce processus uniquement : compteurs temporaires, remis à zéro lors d'un redémarrage ou d'un changement d'instance.",
     )
@@ -211,7 +212,7 @@ def admin_metrics():
 def command():
     access_code = os.getenv("MBO_CODE", "").strip()
     if not access_code:
-        return jsonify(erreur="L'accès n'est pas encore configuré. Ajoute MBO_CODE dans les variables Vercel."), 503
+        return jsonify(erreur="L'accès n'est pas encore configuré. Ajoute MBO_CODE dans les variables d’environnement de Render."), 503
     if not hmac.compare_digest(request.headers.get("X-Code", ""), access_code):
         return jsonify(erreur="Code d'accès incorrect."), 401
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
@@ -231,7 +232,7 @@ def command():
         metrics["errors"] += 1
         metrics["last_error_at"] = datetime.now(timezone.utc).isoformat()
         metrics["last_error"] = "Clé Gemini non configurée"
-        return jsonify(erreur="La clé GEMINI_API_KEY n'est pas configurée dans Vercel."), 503
+        return jsonify(erreur="La clé GEMINI_API_KEY n’est pas configurée dans les variables d’environnement de Render."), 503
     if not MODEL:
         metrics["errors"] += 1
         metrics["last_error_at"] = datetime.now(timezone.utc).isoformat()
@@ -273,12 +274,12 @@ def command():
         message = str(exc).lower()
         if "api_key_invalid" in message or "invalid api key" in message or "unauthorized" in message:
             metrics["last_error"] = "Clé Gemini invalide ou refusée"
-            return jsonify(erreur="La clé Gemini semble invalide. Vérifie GEMINI_API_KEY dans Vercel."), 502
+            return jsonify(erreur="La clé Gemini semble invalide. Vérifie GEMINI_API_KEY dans les variables d’environnement de Render."), 502
         if "not_found" in message or "404" in message or ("model" in message and "not" in message):
             metrics["last_error"] = "Modèle Gemini introuvable ou indisponible"
             return jsonify(erreur="Le modèle Gemini configuré est introuvable ou indisponible. Vérifie GEMINI_MODEL."), 502
         metrics["last_error"] = "Erreur du fournisseur Gemini"
-        return jsonify(erreur="Gemini n'a pas pu répondre. Vérifie la clé et les journaux du projet Vercel, puis réessaie."), 502
+        return jsonify(erreur="Gemini n'a pas pu répondre. Vérifie la clé et les journaux du service Render, puis réessaie."), 502
 
 @app.errorhandler(413)
 def request_too_large(_error):
