@@ -1,4 +1,4 @@
-# MBO.IA
+# Yvan.IA
 
 Assistant IA vocal personnel en français.
 
