@@ -85,12 +85,26 @@ create policy "profile owner updates own profile" on public.profiles
 for update to authenticated using (id = (select auth.uid())) with check (id = (select auth.uid()));
 
 drop policy if exists "device owner manages own devices" on public.user_devices;
-create policy "device owner manages own devices" on public.user_devices
-for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+drop policy if exists "device owner reads own devices" on public.user_devices;
+create policy "device owner reads own devices" on public.user_devices
+for select to authenticated using (user_id = (select auth.uid()));
+
+-- L’ajout d’un appareil sera fait uniquement par le flux d’association sécurisé.
+-- Un utilisateur peut révoquer ses appareils, mais ne peut pas les déclarer lui-même appairés.
+drop policy if exists "device owner revokes own devices" on public.user_devices;
+create policy "device owner revokes own devices" on public.user_devices
+for update to authenticated
+using (user_id = (select auth.uid()))
+with check (user_id = (select auth.uid()) and status = 'revoked' and revoked_at is not null);
 
 drop policy if exists "owner manages own pairing sessions" on public.device_pairing_sessions;
-create policy "owner manages own pairing sessions" on public.device_pairing_sessions
-for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+drop policy if exists "owner reads own pairing sessions" on public.device_pairing_sessions;
+create policy "owner reads own pairing sessions" on public.device_pairing_sessions
+for select to authenticated using (user_id = (select auth.uid()));
+
+drop policy if exists "owner creates own pairing sessions" on public.device_pairing_sessions;
+create policy "owner creates own pairing sessions" on public.device_pairing_sessions
+for insert to authenticated with check (user_id = (select auth.uid()) and consumed_at is null);
 
 drop policy if exists "owner manages own approved folders" on public.approved_folders;
 create policy "owner manages own approved folders" on public.approved_folders
