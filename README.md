@@ -9,7 +9,6 @@ Yvan.IA est un assistant personnel en français, construit avec Flask et Google 
 - Lecture des fichiers TXT, MD, CSV et PDF placés dans `dossier_mbo/`.
 - Liste des dossiers autorisés.
 - Préparation de brouillons d'e-mails sans envoi automatique.
-- Code d'accès privé pour les utilisateurs.
 - Tableau de bord administrateur à `/admin`, protégé par un code distinct `ADMIN_CODE`.
 - Vérification de l'état de configuration et compteurs opérationnels temporaires.
 - Interface responsive pour ordinateur et mobile.
@@ -26,7 +25,6 @@ Yvan.IA est un assistant personnel en français, construit avec Flask et Google 
 ## Variables d'environnement
 Dans Render, ouvre le service Yvan.IA puis Environment et configure :
 - `GEMINI_API_KEY` : clé privée Google AI Studio.
-- `MBO_CODE` : code privé utilisé par les utilisateurs dans l'assistant.
 - `ADMIN_CODE` : code secret réservé à l'administrateur. Il doit être différent de `MBO_CODE`.
 - `GEMINI_MODEL` : modèle disponible sur ton compte. Valeur par défaut : `gemini-3.8-flash`.
 
@@ -45,7 +43,7 @@ Ne place jamais les vraies clés dans GitHub, dans le code ou dans un message. L
 Les compteurs de requêtes/réponses/erreurs sont en mémoire dans un processus. Sur Render, plusieurs instances peuvent fonctionner en parallèle et les compteurs peuvent être remis à zéro au redémarrage. Ils ne sont donc ni un total global fiable, ni un historique de facturation. Le tableau de bord n'affiche pas encore les visiteurs uniques, les comptes clients, les abonnements ou les paiements. Pour ces statistiques, il faudra ajouter une base de données persistante et un système de comptes.
 
 ## Vérification
-- `/sante` indique si Gemini, le code utilisateur et le code administrateur sont configurés (sans révéler leurs valeurs).
+- `/sante` indique si Gemini et le code administrateur sont configurés (sans révéler leurs valeurs).
 - `/admin/metrics` est protégé par `ADMIN_CODE`.
 - Envoie un message depuis l'interface pour tester réellement la clé et le modèle.
 - Teste la dictée vocale dans un navigateur compatible avec l'autorisation micro.
@@ -61,7 +59,6 @@ Les compteurs de requêtes/réponses/erreurs sont en mémoire dans un processus.
 ```powershell
 python -m pip install -r requirements.txt
 $env:GEMINI_API_KEY="ta_cle_gemini"
-$env:MBO_CODE="ton-code-secret-utilisateur"
 $env:ADMIN_CODE="un-autre-code-secret-admin"
 $env:GEMINI_MODEL="gemini-3.8-flash"
 python server.py
