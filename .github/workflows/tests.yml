@@ -2,7 +2,7 @@ name: Vérifications Yvan.IA
 
 on:
   push:
-    branches: ["main", "ameliorations/**"]
+    branches: ["main", "corrections/**"]
   pull_request:
     branches: ["main"]
 

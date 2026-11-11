@@ -8,6 +8,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory
 from google import genai
 from google.genai import types
+from pypdf import PdfReader
 
 BASE = Path(__file__).resolve().parent
 DATA = (BASE / "dossier_mbo").resolve()
@@ -16,8 +17,10 @@ IS_VERCEL = os.getenv("VERCEL") == "1"
 DRAFTS = (Path("/tmp/yvan-ia/brouillons") if IS_VERCEL else DATA / "brouillons").resolve()
 DRAFTS.mkdir(parents=True, exist_ok=True)
 
-MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
 MAX_HISTORY_MESSAGES = 16
+MAX_HISTORY_CHARS = 24000
+MAX_HISTORY_ITEM_CHARS = 4000
 MAX_MESSAGE_LENGTH = 8000
 RATE_WINDOW_SECONDS = 60
 RATE_LIMIT = 20
@@ -30,7 +33,7 @@ SYSTEM = """Tu es Yvan.IA, un assistant personnel intelligent qui répond en fra
 Tu es chaleureux, précis, pédagogique et honnête. Adapte la longueur de tes réponses à la demande.
 Pour les sujets techniques, explique les étapes clairement et signale les limites ou incertitudes.
 Ne prétends jamais avoir effectué une action externe que tu n'as pas réellement effectuée.
-Tu peux consulter les fichiers autorisés dans dossier_mbo et créer des brouillons d'e-mails.
+Tu peux consulter les fichiers autorisés dans dossier_mbo et préparer des brouillons d'e-mails.
 Tu ne peux pas envoyer d'e-mails, accéder à l'ordinateur personnel de l'utilisateur, ni inventer le contenu d'un fichier.
 Quand une demande est ambiguë, pose une seule question utile."""
 
@@ -43,7 +46,11 @@ def safe_path(relative):
     return path
 
 def lister_dossier(chemin: str) -> str:
-    """Liste les fichiers et sous-dossiers situés dans dossier_mbo. Utilise '.' pour la racine."""
+    """Liste les fichiers et sous-dossiers situés dans dossier_mbo.
+
+    Args:
+        chemin: Chemin relatif à dossier_mbo ; utiliser '.' pour la racine.
+    """
     try:
         path = safe_path(chemin)
         if not path.is_dir():
@@ -54,28 +61,47 @@ def lister_dossier(chemin: str) -> str:
         return f"Accès refusé : {exc}"
 
 def lire_fichier(chemin: str) -> str:
-    """Lit un fichier TXT, MD ou CSV situé dans dossier_mbo."""
+    """Lit un fichier texte ou PDF situé dans dossier_mbo.
+
+    Args:
+        chemin: Chemin relatif du fichier dans dossier_mbo.
+    """
     try:
         path = safe_path(chemin)
-        if not path.is_file() or path.suffix.lower() not in {".txt", ".md", ".csv"}:
-            return "Fichier absent ou format non autorisé (TXT, MD, CSV uniquement)."
-        if path.stat().st_size > 2_000_000:
-            return "Fichier trop volumineux (maximum 2 Mo)."
-        return path.read_text(encoding="utf-8", errors="replace")[:10000]
+        if not path.is_file() or path.suffix.lower() not in {".txt", ".md", ".csv", ".pdf"}:
+            return "Fichier absent ou format non autorisé (TXT, MD, CSV, PDF uniquement)."
+        if path.stat().st_size > 5_000_000:
+            return "Fichier trop volumineux (maximum 5 Mo)."
+        if path.suffix.lower() == ".pdf":
+            reader = PdfReader(str(path))
+            if reader.is_encrypted:
+                return "Ce PDF est protégé par mot de passe et ne peut pas être lu."
+            text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            return text[:12000] or "Aucun texte extractible dans ce PDF (il est peut-être scanné)."
+        return path.read_text(encoding="utf-8", errors="replace")[:12000]
     except (OSError, ValueError) as exc:
         return f"Lecture impossible : {exc}"
+    except Exception:
+        return "Lecture impossible : le fichier est endommagé ou son format n'est pas pris en charge."
 
 def rediger_brouillon(destinataire: str, objet: str, corps: str) -> str:
-    """Crée un brouillon d'e-mail local sans l'envoyer. Demande le destinataire, l'objet et le corps."""
+    """Prépare un brouillon d'e-mail sans l'envoyer.
+
+    Args:
+        destinataire: Adresse ou nom du destinataire.
+        objet: Objet du message.
+        corps: Texte complet du brouillon.
+    """
     recipient = str(destinataire).strip()[:200]
     subject = str(objet).strip()[:200]
     body = str(corps).strip()[:10000]
     if not recipient or not subject or not body:
         return "Destinataire, objet et contenu sont obligatoires."
-    target = DRAFTS / f"brouillon_{uuid.uuid4().hex[:10]}.txt"
-    target.write_text(f"À : {recipient}\nObjet : {subject}\n\n{body}\n", encoding="utf-8")
+    draft = f"À : {recipient}\nObjet : {subject}\n\n{body}\n"
     if IS_VERCEL:
-        return "Brouillon créé dans un espace temporaire. Télécharge-le immédiatement si tu veux le conserver : Vercel ne garantit pas le stockage durable."
+        return "Voici le brouillon prêt à copier (aucun e-mail envoyé) :\n" + draft
+    target = DRAFTS / f"brouillon_{uuid.uuid4().hex[:10]}.txt"
+    target.write_text(draft, encoding="utf-8")
     return f"Brouillon enregistré dans brouillons/{target.name}. Aucun e-mail n'a été envoyé."
 
 GEMINI_TOOLS = [lister_dossier, lire_fichier, rediger_brouillon]
@@ -94,6 +120,7 @@ def clean_history(raw):
     if not isinstance(raw, list):
         return []
     cleaned = []
+    remaining = MAX_HISTORY_CHARS
     for item in raw[-MAX_HISTORY_MESSAGES:]:
         if not isinstance(item, dict):
             continue
@@ -102,14 +129,18 @@ def clean_history(raw):
         if role not in {"user", "model"} or not isinstance(content, str):
             continue
         content = content.strip()
-        if content:
-            cleaned.append({"role": role, "text": content[:MAX_MESSAGE_LENGTH]})
+        if not content or remaining <= 0:
+            continue
+        content = content[-min(MAX_HISTORY_ITEM_CHARS, remaining):]
+        cleaned.append({"role": role, "text": content})
+        remaining -= len(content)
     return cleaned
 
 @app.after_request
 def secure_headers(response):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("X-Frame-Options", "DENY")
     if request.path.startswith("/commande") or request.path.startswith("/sante"):
         response.headers["Cache-Control"] = "no-store"
     return response
@@ -120,16 +151,28 @@ def home():
 
 @app.get("/sante")
 def health():
-    return jsonify(status="ok", app="Yvan.IA", provider="Gemini", model=MODEL, platform="Vercel" if IS_VERCEL else "local")
+    gemini_ready = bool(os.getenv("GEMINI_API_KEY", "").strip() and MODEL)
+    access_ready = bool(os.getenv("MBO_CODE", "").strip())
+    return jsonify(
+        status="ok",
+        app="Yvan.IA",
+        provider="Gemini",
+        model=MODEL,
+        platform="Vercel" if IS_VERCEL else "local",
+        gemini_configured=gemini_ready,
+        access_configured=access_ready,
+        ready=gemini_ready and access_ready,
+    )
 
 @app.post("/commande")
 def command():
-    access_code = os.getenv("MBO_CODE", "")
+    access_code = os.getenv("MBO_CODE", "").strip()
     if not access_code:
         return jsonify(erreur="L'accès n'est pas encore configuré. Ajoute MBO_CODE dans les variables Vercel."), 503
     if not hmac.compare_digest(request.headers.get("X-Code", ""), access_code):
         return jsonify(erreur="Code d'accès incorrect."), 401
-    if rate_limited(request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()):
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    if rate_limited(ip):
         return jsonify(erreur="Trop de demandes en peu de temps. Attends une minute puis réessaie."), 429
 
     data = request.get_json(silent=True) or {}
@@ -176,7 +219,7 @@ def command():
         message = str(exc).lower()
         if "api_key_invalid" in message or "invalid api key" in message or "unauthorized" in message:
             return jsonify(erreur="La clé Gemini semble invalide. Vérifie GEMINI_API_KEY dans Vercel."), 502
-        if "not_found" in message or "404" in message or "model" in message and "not" in message:
+        if "not_found" in message or "404" in message or ("model" in message and "not" in message):
             return jsonify(erreur="Le modèle Gemini configuré est introuvable ou indisponible. Vérifie GEMINI_MODEL."), 502
         return jsonify(erreur="Gemini n'a pas pu répondre. Vérifie la clé et les journaux du projet Vercel, puis réessaie."), 502
 
