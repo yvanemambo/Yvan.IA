@@ -1,2 +1,2 @@
 flask>=3.0,<4
-anthropic>=0.80,<1
+google-genai>=1.0,<2
