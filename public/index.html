@@ -46,9 +46,6 @@ h1{font-size:clamp(1.8rem,5vw,2.7rem);letter-spacing:-.06em;margin:0}
 #send:disabled{opacity:.55;cursor:wait}
 #send svg{width:17px;height:17px}
 .small{font-size:.75rem;color:#847995}
-#access-panel{display:flex;justify-content:center;align-items:center;gap:9px;padding:0 0 8px;color:var(--muted);font-size:.8rem}
-#access{width:150px;max-width:42vw;background:#171126;border:1px solid var(--line);color:white;border-radius:9px;padding:8px 10px;outline:none}
-#access:focus{border-color:var(--purple)}
 footer{text-align:center;color:#716781;font-size:.72rem;padding:0 0 12px}
 [hidden]{display:none!important}
 @keyframes appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
@@ -81,16 +78,14 @@ footer{text-align:center;color:#716781;font-size:.72rem;padding:0 0 12px}
    </div>
   </form>
  </div>
- <section id="access-panel"><label for="access">Code privé</label><input id="access" type="password" autocomplete="current-password" placeholder="Code d'accès"></section>
 </main>
-<footer>Yvan.IA · Propulsé par Gemini · Tes conversations sont enregistrées sur cet appareil</footer>
 </div>
 <script>
 const $=selector=>document.querySelector(selector);
-const messages=$("#messages"),welcome=$("#welcome"),form=$("#chat"),promptInput=$("#prompt"),send=$("#send"),access=$("#access"),mic=$("#mic"),voiceStatus=$("#voice-status"),statusEl=$(".status");
-const HISTORY_KEY="yvan-ia-history-v2",CODE_KEY="yvan-ia-code";
+const messages=$("#messages"),welcome=$("#welcome"),form=$("#chat"),promptInput=$("#prompt"),send=$("#send"),mic=$("#mic"),voiceStatus=$("#voice-status"),statusEl=$(".status");
+const HISTORY_KEY="yvan-ia-history-v2";
 let history=[];
-try{history=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");if(!Array.isArray(history))history=[];history=history.filter(item=>item&&["user","assistant"].includes(item.role)&&typeof item.text==="string").slice(-80);access.value=sessionStorage.getItem(CODE_KEY)||"";}catch(_){history=[];}
+try{history=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");if(!Array.isArray(history))history=[];history=history.filter(item=>item&&["user","assistant"].includes(item.role)&&typeof item.text==="string").slice(-80);}catch(_){history=[];}
 function saveHistory(){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(-80)));}catch(_){voiceStatus.textContent="Stockage local indisponible";}}
 function addMessage(text,role,save=true){
  const wrap=document.createElement("article");wrap.className="message "+role;
@@ -122,7 +117,6 @@ async function checkHealth(){
  }
 }
 checkHealth();
-access.addEventListener("input",()=>{try{sessionStorage.setItem(CODE_KEY,access.value);}catch(_){}});
 function resizeInput(){promptInput.style.height="auto";promptInput.style.height=Math.min(promptInput.scrollHeight,160)+"px";}
 promptInput.addEventListener("input",resizeInput);
 promptInput.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.isComposing){event.preventDefault();form.requestSubmit();}});
@@ -146,7 +140,6 @@ if(SpeechRecognition){
 }else{mic.disabled=true;mic.title="La dictée vocale n'est pas prise en charge par ce navigateur";voiceStatus.textContent="Dictée non prise en charge";}
 form.addEventListener("submit",async event=>{
  event.preventDefault();const text=promptInput.value.trim();if(!text||send.disabled)return;
- if(!access.value.trim()){addMessage("Entre ton code privé pour utiliser Yvan.IA.","error",false);access.focus();return;}
  const previous=[];let historyBudget=20000;
  for(const item of history.slice(-16).reverse()){
   if(historyBudget<=0)break;
@@ -156,7 +149,7 @@ form.addEventListener("submit",async event=>{
  addMessage(text,"user");welcome.hidden=true;promptInput.value="";resizeInput();send.disabled=true;send.textContent="Réflexion…";
  const waiting=addMessage("Yvan.IA prépare une réponse…","assistant",false);
  try{
-  const response=await fetch("/commande",{method:"POST",headers:{"Content-Type":"application/json","X-Code":access.value},body:JSON.stringify({texte:text,historique:previous})});
+  const response=await fetch("/commande",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:text,historique:previous})});
   const data=await response.json();
   waiting.textContent=response.ok&&!data.erreur?(data.reponse||"Réponse vide."):("Erreur : "+(data.erreur||"Le serveur n'a pas répondu correctement."));
   const role=response.ok&&!data.erreur?"assistant":"error";
