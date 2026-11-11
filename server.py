@@ -8,7 +8,15 @@ from flask import Flask, jsonify, request, send_from_directory
 
 BASE = Path(__file__).resolve().parent
 DATA = (BASE / "dossier_mbo").resolve()
-DRAFTS = (DATA / "brouillons").resolve()
+PUBLIC = BASE / "public"
+IS_VERCEL = os.getenv("VERCEL") == "1"
+
+# Vercel's deployment filesystem is not persistent. Drafts are written to /tmp there.
+DRAFTS = (
+    Path("/tmp/yvan-ia/brouillons")
+    if IS_VERCEL
+    else (DATA / "brouillons")
+).resolve()
 DRAFTS.mkdir(parents=True, exist_ok=True)
 
 MODEL = os.getenv("MBO_MODEL", "claude-sonnet-4-5").strip()
@@ -55,6 +63,8 @@ def run_tool(name, args):
             return "Destinataire, objet et contenu sont obligatoires."
         target = DRAFTS / f"brouillon_{uuid.uuid4().hex[:10]}.txt"
         target.write_text(f"À : {recipient}\nObjet : {subject}\n\n{body}\n", encoding="utf-8")
+        if IS_VERCEL:
+            return "Brouillon créé temporairement dans l'espace de travail de cette fonction. Il ne sera pas conservé durablement sur Vercel."
         return f"Brouillon enregistré dans brouillons/{target.name}. Aucun e-mail n'a été envoyé."
 
     return "Outil inconnu."
@@ -95,17 +105,17 @@ TOOLS = [
 
 @app.get("/")
 def home():
-    return send_from_directory(BASE, "index.html")
+    return send_from_directory(PUBLIC, "index.html")
 
 @app.get("/sante")
 def health():
-    return jsonify(status="ok", app="Yvan.IA", model=MODEL or "non configuré")
+    return jsonify(status="ok", app="Yvan.IA", model=MODEL or "non configuré", platform="Vercel" if IS_VERCEL else "local")
 
 @app.post("/commande")
 def command():
     access_code = os.getenv("MBO_CODE", "")
     if not access_code:
-        return jsonify(erreur="Configure MBO_CODE dans les variables d'environnement."), 503
+        return jsonify(erreur="Configure MBO_CODE dans les variables d'environnement Vercel."), 503
     supplied_code = request.headers.get("X-Code", "")
     if not hmac.compare_digest(supplied_code, access_code):
         return jsonify(erreur="Code d'accès incorrect."), 401
@@ -120,7 +130,7 @@ def command():
 
     api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
-        return jsonify(erreur="La clé ANTHROPIC_API_KEY n'est pas configurée."), 503
+        return jsonify(erreur="La clé ANTHROPIC_API_KEY n'est pas configurée dans Vercel."), 503
     if not MODEL:
         return jsonify(erreur="Configure MBO_MODEL avec un modèle Anthropic valide."), 503
 
@@ -180,7 +190,7 @@ def command():
         return jsonify(erreur="La demande a dépassé le nombre d'étapes autorisé. Reformule-la."), 502
 
     except anthropic.AuthenticationError:
-        return jsonify(erreur="Clé API Anthropic invalide. Vérifie ANTHROPIC_API_KEY."), 502
+        return jsonify(erreur="Clé API Anthropic invalide. Vérifie ANTHROPIC_API_KEY dans Vercel."), 502
     except anthropic.APIConnectionError:
         app.logger.exception("Connexion Anthropic impossible")
         return jsonify(erreur="Connexion au service IA impossible. Vérifie Internet."), 502
@@ -189,7 +199,7 @@ def command():
         return jsonify(erreur=f"Erreur du service IA (HTTP {exc.status_code}). Vérifie le modèle et ta clé API."), 502
     except Exception:
         app.logger.exception("Erreur inattendue Yvan.IA")
-        return jsonify(erreur="Une erreur inattendue est survenue. Consulte les journaux du serveur."), 500
+        return jsonify(erreur="Une erreur inattendue est survenue. Consulte les journaux Vercel."), 500
 
 if __name__ == "__main__":
     print("Yvan.IA : ouvre http://127.0.0.1:5000 sur cet ordinateur.")
