@@ -311,7 +311,7 @@ async function checkHealth(){
   const response=await fetch("/sante",{cache:"no-store"});
   if(!response.ok)throw new Error("health");
   const data=await response.json();
-  const ready=Boolean(data.gemini_configured);
+  const ready=Boolean(data.gemini_configured && data.supabase_configured);
   statusEl.classList.toggle("pending",!ready);
   statusEl.classList.remove("offline");
   statusEl.lastChild.textContent=!data.supabase_configured?"Comptes à configurer":(ready?"Gemini configuré":"Configuration requise");
