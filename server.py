@@ -46,7 +46,11 @@ def safe_path(relative):
     return path
 
 def lister_dossier(chemin: str) -> str:
-    """Liste les fichiers et sous-dossiers situés dans dossier_mbo. Utilise '.' pour la racine."""
+    """Liste les fichiers et sous-dossiers situés dans dossier_mbo.
+
+    Args:
+        chemin: Chemin relatif à dossier_mbo ; utiliser '.' pour la racine.
+    """
     try:
         path = safe_path(chemin)
         if not path.is_dir():
@@ -57,7 +61,11 @@ def lister_dossier(chemin: str) -> str:
         return f"Accès refusé : {exc}"
 
 def lire_fichier(chemin: str) -> str:
-    """Lit un fichier TXT, MD, CSV ou PDF situé dans dossier_mbo."""
+    """Lit un fichier texte ou PDF situé dans dossier_mbo.
+
+    Args:
+        chemin: Chemin relatif du fichier dans dossier_mbo.
+    """
     try:
         path = safe_path(chemin)
         if not path.is_file() or path.suffix.lower() not in {".txt", ".md", ".csv", ".pdf"}:
@@ -77,7 +85,13 @@ def lire_fichier(chemin: str) -> str:
         return "Lecture impossible : le fichier est endommagé ou son format n'est pas pris en charge."
 
 def rediger_brouillon(destinataire: str, objet: str, corps: str) -> str:
-    """Prépare un brouillon d'e-mail sans l'envoyer. Demande le destinataire, l'objet et le corps."""
+    """Prépare un brouillon d'e-mail sans l'envoyer.
+
+    Args:
+        destinataire: Adresse ou nom du destinataire.
+        objet: Objet du message.
+        corps: Texte complet du brouillon.
+    """
     recipient = str(destinataire).strip()[:200]
     subject = str(objet).strip()[:200]
     body = str(corps).strip()[:10000]
