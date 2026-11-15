@@ -5,7 +5,8 @@ import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID, timingSafeEqual } from "node:crypto";
-import { render, findChrome } from "givemotion";
+import { render, check, snapshot, findChrome } from "givemotion";
+import { buildComposition } from "./composition.mjs";
 import { canvasForAspect, assertRenderDimensions } from "./layout.mjs";
 
 const PORT = Number(process.env.PORT || 10000);
@@ -13,6 +14,7 @@ const TOKEN = process.env.VIDEO_RENDERER_TOKEN || "";
 const ROOT = process.env.VIDEO_RENDERER_DATA || join(tmpdir(), "yvan-ia-video");
 const MAX_BODY = 64 * 1024;
 const MAX_QUEUE = 5;
+const VISUALS = new Set(["orbit", "bars", "product", "device", "burst"]);
 const RETENTION_MS = 24 * 60 * 60 * 1000;
 const jobs = new Map();
 const queue = [];
@@ -58,63 +60,17 @@ function validate(data) {
   const style = Object.hasOwn(palettes, data.style) ? data.style : null;
   if (!aspect || !duration || !style) throw new Error("Format, durée ou style non reconnu.");
   if (!Array.isArray(data.scenes) || data.scenes.length < 3 || data.scenes.length > 5) throw new Error("Le storyboard doit contenir de 3 à 5 scènes.");
-  const scenes = data.scenes.map((scene) => ({
+  const scenes = data.scenes.map((scene, index) => ({
     kicker: cleanText(scene?.kicker, 50),
     title: cleanText(scene?.title, 100),
     subtitle: cleanText(scene?.subtitle, 180),
+    visual: VISUALS.has(scene?.visual) ? scene.visual : ["orbit", "bars", "product", "device", "burst"][index % 5],
   }));
   if (scenes.some((scene) => !scene.title)) throw new Error("Chaque scène doit avoir un titre.");
   return { title: cleanText(data.title, 100), scenes, aspect, duration, style };
 }
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-function buildComposition(data) {
-  const theme = palettes[data.style];
-  const { width, height } = canvasForAspect(data.aspect);
-  const sceneDuration = (data.duration + (data.scenes.length - 1) * 0.5) / data.scenes.length;
-  const scenes = data.scenes.map((scene, index) => {
-    const kicker = scene.kicker || data.title || "YVAN.IA STUDIO";
-    const subtitle = scene.subtitle || "";
-    return `
-      <section class="scene" data-duration="${sceneDuration.toFixed(2)}">
-        <div class="glow glow-a"></div><div class="glow glow-b"></div>
-        <div class="frame">
-          <div class="topline"><span>YVAN.IA / MOTION</span><span>0${index + 1} — 0${data.scenes.length}</span></div>
-          <div class="copy">
-            <p class="kicker" data-enter="fade-up 0.6 0.15">${esc(kicker)}</p>
-            <h1 data-enter="rise 0.85 0.35">${esc(scene.title)}</h1>
-            ${subtitle ? `<p class="subtitle" data-enter="fade-up 0.7 0.8">${esc(subtitle)}</p>` : ""}
-            <div class="accent-line" data-enter="scale 0.7 0.95"></div>
-          </div>
-          <div class="bottomline"><span>${esc((data.title || "CRÉATION ORIGINALE").slice(0, 36))}</span><span>STUDIO CRÉATIF</span></div>
-        </div>
-        <div class="orbit"></div>
-      </section>`;
-  }).join("\n");
-  return `<!doctype html>
-<html lang="fr" data-width="${width}" data-height="${height}" data-fps="30" data-background="${theme.bg}" data-aspect="${data.aspect}">
-<head><meta charset="utf-8"><style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
-body{background:${theme.bg};color:#fff;font-family:Inter,Arial,sans-serif}
-.scene{position:relative;container-type:size;width:100%;height:100%;overflow:hidden;display:grid;place-items:center;background:radial-gradient(ellipse at 75% 15%,${theme.panel},transparent 55%),linear-gradient(135deg,${theme.bg},#080a12)}
-.frame{position:relative;z-index:3;width:88%;height:88%;min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
-.topline,.bottomline{display:flex;justify-content:space-between;align-items:center;gap:2cqi;min-width:0;color:#ffffff88;font-size:clamp(10px,1.45cqi,20px);line-height:1.25;letter-spacing:.12em;font-weight:700}
-.topline span,.bottomline span{min-width:0;max-width:48%;overflow-wrap:anywhere}
-.copy{width:100%;max-width:100%;max-height:70%;min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:2cqi 0}
-.kicker{max-width:100%;font-size:clamp(12px,2.4cqi,30px);line-height:1.2;letter-spacing:.16em;text-transform:uppercase;color:${theme.secondary};font-weight:800;margin:0 0 2.4cqh;overflow-wrap:anywhere}
-h1{width:100%;max-width:100%;max-height:3.85em;font-size:clamp(34px,min(9cqi,10cqh),142px);line-height:1.02;letter-spacing:-.045em;font-weight:850;margin:0;overflow-wrap:anywhere;word-break:normal;text-wrap:balance;overflow:hidden}
-.subtitle{width:100%;max-width:100%;max-height:3.8em;font-size:clamp(16px,min(3.4cqi,4.2cqh),48px);line-height:1.22;color:#e5e8f0;margin:2.8cqh 0 0;overflow-wrap:anywhere;text-wrap:balance;overflow:hidden}
-.accent-line{width:clamp(48px,13cqi,180px);height:clamp(4px,.7cqh,9px);flex:none;border-radius:10px;background:linear-gradient(90deg,${theme.accent},${theme.secondary});margin-top:3cqh;transform-origin:left}
-.glow{position:absolute;width:58%;aspect-ratio:1;border-radius:50%;filter:blur(8cqi);opacity:.18;pointer-events:none}
-.glow-a{background:${theme.accent};right:-18%;top:-25%;animation:float 7s ease-in-out infinite alternate}
-.glow-b{background:${theme.secondary};left:-28%;bottom:-30%;animation:float 9s ease-in-out infinite alternate-reverse}
-.orbit{position:absolute;z-index:1;width:52%;aspect-ratio:1;border:1px solid #ffffff18;border-radius:50%;right:-20%;bottom:-24%;box-shadow:0 0 0 3cqi #ffffff08,0 0 0 6cqi #ffffff05;pointer-events:none}
-@keyframes float{from{transform:translate3d(-3%,-2%,0) scale(.92)}to{transform:translate3d(4%,5%,0) scale(1.08)}}
-</style></head>
-<body><main data-sequence data-transition="push-left 0.5">${scenes}</main><script>
-(async()=>{try{await document.fonts.ready;}catch(_){}document.querySelectorAll(".scene").forEach(scene=>{const fit=el=>{if(!el)return;let size=parseFloat(getComputedStyle(el).fontSize)||32;for(let i=0;i<22&&(el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1);i++){size*=.92;el.style.fontSize=size+"px";}};const copy=scene.querySelector(".copy"),title=scene.querySelector("h1"),subtitle=scene.querySelector(".subtitle"),kicker=scene.querySelector(".kicker");fit(title);fit(subtitle);for(let i=0;i<24&&copy&&copy.scrollHeight>copy.clientHeight+1;i++){[title,subtitle,kicker].forEach(el=>{if(el){const size=parseFloat(getComputedStyle(el).fontSize)||24;el.style.fontSize=(size*.94)+"px";}});}});})();
-</script></body></html>`;
-}
 
 async function runJob(job) {
   job.status = "rendering";
@@ -123,10 +79,16 @@ async function runJob(job) {
   job.dir = dir;
   const htmlPath = join(dir, "composition.html");
   const outputPath = join(dir, "yvan-ia-motion.mp4");
-  await writeFile(htmlPath, buildComposition(job.storyboard), "utf8");
+  await writeFile(htmlPath, buildComposition(job.storyboard, palettes, canvasForAspect, esc), "utf8");
   const { width, height } = canvasForAspect(job.storyboard.aspect);
+  job.progress = { phase: "contrôle qualité", done: 0, total: 0 };
+  const quality = await check(htmlPath, { workers: 1, motion: true, pacing: true });
+  if (quality.errors > 0) {
+    const first = quality.issues.filter((issue) => issue.severity === "error").slice(0, 3).map((issue) => issue.message).join(" | ");
+    throw new Error("Contrôle qualité GiveMotion : " + (first || "problème de composition détecté."));
+  }
   const result = await render(htmlPath, {
-    output: outputPath, quality: "standard", workers: 1, width, height, fps: 30,
+    output: outputPath, quality: "high", motionBlur: "auto", workers: 1, width, height, fps: 30,
     timeoutMs: 120000, hardware: false, cache: false, quiet: true,
     onProgress: (p) => { job.progress = { phase: p.phase, done: p.done || 0, total: p.total || 0, eta: p.eta ?? null }; },
   });
@@ -135,9 +97,12 @@ async function runJob(job) {
   if (probe.error || probe.status !== 0) throw new Error("Impossible de vérifier les dimensions du MP4 final.");
   const stream = JSON.parse(probe.stdout || "{}").streams?.[0];
   assertRenderDimensions(stream, width, height);
+  job.progress = { phase: "vérification des scènes", done: 0, total: 0 };
+  const review = await snapshot(htmlPath, { output: join(dir, "review"), max: 8, cols: 4, transitions: true, grid: true });
+  if (review.errors?.length) throw new Error("La vérification visuelle a détecté une erreur dans les scènes.");
   const info = await stat(outputPath);
   if (!info.size) throw new Error("Le fichier MP4 est vide.");
-  job.result = { duration: result.duration, width, height, bytes: info.size };
+  job.result = { duration: result.duration, width, height, bytes: info.size, scenes: job.storyboard.scenes.length, quality: { errors: quality.errors, warnings: quality.warnings, motionChecked: Boolean(quality.motion), reviewFrames: review.files?.length || review.times?.length || 0 }, renderQuality: "high" };
   job.outputPath = outputPath;
   job.status = "completed";
   job.progress = { phase: "terminé", done: result.frames, total: result.frames, eta: 0 };
