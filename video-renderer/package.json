@@ -1,0 +1,8 @@
+{
+  "name": "yvan-ia-video-renderer",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": { "givemotion": "0.1.6" }
+}
