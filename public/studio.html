@@ -81,7 +81,10 @@ async function create(){
    show(status.status==="queued"?"Ta vidéo est dans la file d'attente…":"Rendu en cours : "+(progress.phase||"préparation")+(progress.total?" — "+progress.done+"/"+progress.total+" images":""));
    if(status.status==="completed"){
     const videoUrl="/studio/jobs/"+encodeURIComponent(id)+"/video";
-    $("#preview").src=videoUrl;$("#download").href=videoUrl;
+    const fileResponse=await fetch(videoUrl,{headers:{"X-Studio-Code":code.value.trim()},cache:"no-store"});
+    if(!fileResponse.ok)throw new Error("La vidéo est prête, mais son téléchargement a échoué.");
+    const objectUrl=URL.createObjectURL(await fileResponse.blob());
+    $("#preview").src=objectUrl;$("#download").href=objectUrl;$("#download").download="yvan-ia-motion.mp4";
     $("#meta").textContent=(status.result?.width||"")+" × "+(status.result?.height||"")+" · "+(status.result?.duration||"")+" s · MP4";
     result.classList.remove("hidden");show("Vidéo terminée. Tu peux la regarder ou télécharger le MP4.","good");completed=true;break;
    }
