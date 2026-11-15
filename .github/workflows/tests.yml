@@ -2,7 +2,7 @@ name: Vérifications Yvan.IA
 
 on:
   push:
-    branches: ["main", "corrections/**"]
+    branches: ["main", "corrections/**", "feature/studio-creatif-yvan-ia"]
   pull_request:
     branches: ["main"]
 
@@ -12,6 +12,12 @@ jobs:
     steps:
       - name: Récupérer le dépôt
         uses: actions/checkout@v4
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Vérifier le moteur vidéo
+        run: node --check video-renderer/server.mjs
       - name: Installer Python
         uses: actions/setup-python@v5
         with:
