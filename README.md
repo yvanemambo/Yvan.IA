@@ -15,7 +15,7 @@ Yvan.IA est un assistant personnel en français, construit avec Flask et Google 
 
 ## Structure
 - `server.py` : application Flask, connexion Gemini et routes sécurisées.
-- `api/index.py` : point d'entrée Vercel.
+- `server.py` : point d'entrée Flask utilisé par l'hébergement configuré.
 - `public/index.html` : interface de discussion.
 - `public/admin.html` : tableau de bord administrateur.
 - `vercel.json` : routage vers la fonction Python.
@@ -41,6 +41,11 @@ Ne place jamais les vraies clés dans GitHub, dans le code ou dans un message. L
 
 ### Limites des statistiques
 Les compteurs de requêtes/réponses/erreurs sont en mémoire dans un processus. Sur Render, plusieurs instances peuvent fonctionner en parallèle et les compteurs peuvent être remis à zéro au redémarrage. Ils ne sont donc ni un total global fiable, ni un historique de facturation. Le tableau de bord n'affiche pas encore les visiteurs uniques, les comptes clients, les abonnements ou les paiements. Pour ces statistiques, il faudra ajouter une base de données persistante et un système de comptes.
+
+## Version de fiabilité — novembre 2026
+- Les limites de requêtes utilisent désormais l'adresse client résolue par le proxy de confiance le plus proche (`ProxyFix`) plutôt que la première valeur de `X-Forwarded-For`, qui peut être falsifiée par un visiteur.
+- Les limites par adresse restent en mémoire dans chaque processus : elles ne constituent pas une protection globale entre plusieurs instances. Pour une limite globale, connecter un stockage partagé (Redis ou base de données) avant une ouverture publique à grande échelle.
+- Le Studio conserve son architecture séparée : aucun secret du moteur vidéo n'est envoyé au navigateur.
 
 ## Vérification
 - `/sante` indique si Gemini et le code administrateur sont configurés (sans révéler leurs valeurs).
