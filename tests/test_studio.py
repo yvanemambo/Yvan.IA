@@ -49,3 +49,19 @@ def test_studio_generation_is_disabled_without_studio_code(client, monkeypatch):
     response = client.post("/studio/videos", json={"prompt": "Une publicité"})
     assert response.status_code == 503
     assert "désactivé" in response.get_json()["erreur"]
+
+
+def test_client_ip_uses_nearest_proxy_not_leftmost_forwarded_value(client):
+    # ProxyFix(x_for=1) retient la valeur ajoutée par le proxy de confiance
+    # le plus proche, et ignore la première valeur falsifiable du visiteur.
+    with app.test_request_context(
+        "/", environ_base={"REMOTE_ADDR": "10.0.0.5"},
+        headers={"X-Forwarded-For": "198.51.100.77, 203.0.113.9"},
+    ):
+        assert server.client_ip() == "203.0.113.9"
+
+
+def test_studio_page_is_available(client):
+    response = client.get("/studio")
+    assert response.status_code == 200
+    assert b"Studio Motion Design" in response.data
