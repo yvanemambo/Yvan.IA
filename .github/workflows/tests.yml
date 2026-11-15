@@ -17,7 +17,10 @@ jobs:
         with:
           node-version: "22"
       - name: Vérifier le moteur vidéo
-        run: node --check video-renderer/server.mjs
+        run: |
+          node --check video-renderer/server.mjs
+          node --check video-renderer/layout.mjs
+          node --test video-renderer/layout.test.mjs
       - name: Installer Python
         uses: actions/setup-python@v5
         with:
