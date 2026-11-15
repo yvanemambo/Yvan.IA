@@ -64,3 +64,37 @@ $env:GEMINI_MODEL="gemini-3.8-flash"
 python server.py
 ```
 Puis ouvre http://127.0.0.1:5000 et http://127.0.0.1:5000/admin.
+
+
+## Studio Motion Design GiveMotion
+
+Le Studio est accessible sur `/studio`. Il prépare un storyboard avec le modèle Gemini déjà configuré, puis transmet uniquement des scènes structurées (jamais du HTML libre) au moteur GiveMotion.
+
+### Architecture double hébergement
+- Render héberge un service Docker Node.js séparé dans `video-renderer/` ; il exécute GiveMotion, Chromium et FFmpeg.
+- L'application Flask (Render et/ou Vercel) transmet les demandes au service via `VIDEO_RENDERER_URL`.
+- Le navigateur ne reçoit jamais le jeton du moteur vidéo.
+
+### Variables à configurer
+Sur le service Flask de Render **et** sur Vercel :
+- `VIDEO_RENDERER_URL` : URL HTTPS publique du service de rendu Render.
+- `VIDEO_RENDERER_TOKEN` : secret partagé avec le service vidéo.
+- `VIDEO_STUDIO_CODE` : code d'accès privé saisi dans le Studio.
+
+Sur le service de rendu Render :
+- `VIDEO_RENDERER_TOKEN` : exactement le même secret.
+- `PORT` est fourni automatiquement par Render.
+
+Génère deux secrets longs et uniques. Ne les ajoute jamais au dépôt GitHub. Le service de rendu accepte seulement des storyboards JSON validés et construit lui-même les pages HTML de rendu. Il n'exécute pas du HTML fourni par les visiteurs.
+
+### Déploiement du moteur (à faire séparément, aucun déploiement automatique)
+Créer un nouveau service Render de type **Web Service**, choisir l'environnement **Docker**, utiliser la racine du dépôt comme contexte et `video-renderer/Dockerfile` comme Dockerfile. Ajouter `VIDEO_RENDERER_TOKEN` dans les variables du service. Après son premier déploiement, copier son URL HTTPS dans `VIDEO_RENDERER_URL` sur les deux hébergements de l'application.
+
+### Limites de la première version
+- Formats 9:16, 16:9 et carré ; durées de 10, 15 ou 20 secondes.
+- Deux créations par heure et par adresse IP côté application ; une seule vidéo rendue à la fois côté moteur.
+- Les tâches et MP4 sont conservés temporairement sur le disque du service de rendu (24 h). Le stockage Render gratuit est éphémère : un redémarrage peut donc effacer les vidéos. Un stockage durable (par exemple Supabase Storage) sera nécessaire avant une mise en production avec historique permanent.
+- Le moteur GiveMotion est open source MIT, mais le calcul vidéo consomme les ressources du service Render. Le forfait gratuit peut être lent, s'endormir ou manquer de mémoire sur les vidéos longues.
+- Le Studio utilise Gemini pour préparer le scénario : les quotas gratuits du compte Gemini s'appliquent. Aucun nouveau fournisseur payant n'est ajouté.
+
+Le Studio reste indisponible tant que les trois variables `VIDEO_RENDERER_URL`, `VIDEO_RENDERER_TOKEN` et `VIDEO_STUDIO_CODE` ne sont pas configurées.
