@@ -96,18 +96,18 @@ function buildComposition(data) {
 <head><meta charset="utf-8"><style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
 body{background:${theme.bg};color:#fff;font-family:Inter,Arial,sans-serif}
-.scene{position:relative;container-type:size;width:100%;height:100%;overflow:hidden;display:grid;place-items:center;background:radial-gradient(ellipse at 75% 15%,\${theme.panel},transparent 55%),linear-gradient(135deg,\${theme.bg},#080a12)}
+.scene{position:relative;container-type:size;width:100%;height:100%;overflow:hidden;display:grid;place-items:center;background:radial-gradient(ellipse at 75% 15%,${theme.panel},transparent 55%),linear-gradient(135deg,${theme.bg},#080a12)}
 .frame{position:relative;z-index:3;width:88%;height:88%;min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
 .topline,.bottomline{display:flex;justify-content:space-between;align-items:center;gap:2cqi;min-width:0;color:#ffffff88;font-size:clamp(10px,1.45cqi,20px);line-height:1.25;letter-spacing:.12em;font-weight:700}
 .topline span,.bottomline span{min-width:0;max-width:48%;overflow-wrap:anywhere}
 .copy{width:100%;max-width:100%;max-height:70%;min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:2cqi 0}
-.kicker{max-width:100%;font-size:clamp(12px,2.4cqi,30px);line-height:1.2;letter-spacing:.16em;text-transform:uppercase;color:\${theme.secondary};font-weight:800;margin:0 0 2.4cqh;overflow-wrap:anywhere}
+.kicker{max-width:100%;font-size:clamp(12px,2.4cqi,30px);line-height:1.2;letter-spacing:.16em;text-transform:uppercase;color:${theme.secondary};font-weight:800;margin:0 0 2.4cqh;overflow-wrap:anywhere}
 h1{width:100%;max-width:100%;max-height:3.85em;font-size:clamp(34px,min(9cqi,10cqh),142px);line-height:1.02;letter-spacing:-.045em;font-weight:850;margin:0;overflow-wrap:anywhere;word-break:normal;text-wrap:balance;overflow:hidden}
 .subtitle{width:100%;max-width:100%;max-height:3.8em;font-size:clamp(16px,min(3.4cqi,4.2cqh),48px);line-height:1.22;color:#e5e8f0;margin:2.8cqh 0 0;overflow-wrap:anywhere;text-wrap:balance;overflow:hidden}
-.accent-line{width:clamp(48px,13cqi,180px);height:clamp(4px,.7cqh,9px);flex:none;border-radius:10px;background:linear-gradient(90deg,\${theme.accent},\${theme.secondary});margin-top:3cqh;transform-origin:left}
+.accent-line{width:clamp(48px,13cqi,180px);height:clamp(4px,.7cqh,9px);flex:none;border-radius:10px;background:linear-gradient(90deg,${theme.accent},${theme.secondary});margin-top:3cqh;transform-origin:left}
 .glow{position:absolute;width:58%;aspect-ratio:1;border-radius:50%;filter:blur(8cqi);opacity:.18;pointer-events:none}
-.glow-a{background:\${theme.accent};right:-18%;top:-25%;animation:float 7s ease-in-out infinite alternate}
-.glow-b{background:\${theme.secondary};left:-28%;bottom:-30%;animation:float 9s ease-in-out infinite alternate-reverse}
+.glow-a{background:${theme.accent};right:-18%;top:-25%;animation:float 7s ease-in-out infinite alternate}
+.glow-b{background:${theme.secondary};left:-28%;bottom:-30%;animation:float 9s ease-in-out infinite alternate-reverse}
 .orbit{position:absolute;z-index:1;width:52%;aspect-ratio:1;border:1px solid #ffffff18;border-radius:50%;right:-20%;bottom:-24%;box-shadow:0 0 0 3cqi #ffffff08,0 0 0 6cqi #ffffff05;pointer-events:none}
 @keyframes float{from{transform:translate3d(-3%,-2%,0) scale(.92)}to{transform:translate3d(4%,5%,0) scale(1.08)}}
 </style></head>
