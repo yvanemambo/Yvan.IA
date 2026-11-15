@@ -177,10 +177,14 @@ def clean_storyboard(raw):
     for item in raw["scenes"][:5]:
         if not isinstance(item, dict):
             continue
+        visual = item.get("visual")
+        if visual not in {"orbit", "bars", "product", "device", "burst"}:
+            visual = ["orbit", "bars", "product", "device", "burst"][len(scenes) % 5]
         scene = {
             "kicker": clean_text(item.get("kicker"), 50),
             "title": clean_text(item.get("title"), 100),
             "subtitle": clean_text(item.get("subtitle"), 180),
+            "visual": visual,
         }
         if scene["title"]:
             scenes.append(scene)
@@ -290,10 +294,14 @@ def studio_create_video():
 
     instructions = (
         "Tu es directeur artistique et scénariste motion design. Prépare un storyboard publicitaire "
-        "professionnel en français à partir du brief. Retourne uniquement un JSON valide avec les clés "
-        "title (string) et scenes (tableau de 3 à 5 objets). Chaque objet contient kicker, title et subtitle "
-        "(chaînes courtes). Prévois une accroche immédiate, une progression visuelle et une conclusion/CTA. "
-        "Ne mets aucun HTML, CSS, JavaScript, URL, marque ou chiffre non fourni par l'utilisateur. "
+        "professionnel en français à partir du brief. La vidéo doit ressembler à un vrai spot motion design "
+        "avec plusieurs plans visuellement distincts, et non à une suite de diapositives. Retourne uniquement "
+        "un JSON valide avec les clés title (string) et scenes (tableau de 3 à 5 objets). Chaque objet contient "
+        "kicker, title, subtitle et visual. visual doit être exactement l'un de ces choix : orbit, bars, product, "
+        "device, burst. Choisis le motif qui illustre le mieux le message de cette scène et varie les motifs "
+        "entre les scènes. Prévois une accroche immédiate, une progression narrative, des scènes de démonstration "
+        "et une conclusion avec appel à l'action. Les titres doivent être courts et percutants, les sous-titres "
+        "très courts. Ne mets aucun HTML, CSS, JavaScript, URL, marque ou chiffre non fourni par l'utilisateur. "
         "N'invente pas de caractéristiques de produit. Le texte doit être lisible à l'écran."
     )
     brief = f"Brief : {prompt}\nFormat : {aspect}\nDurée cible : {duration} secondes\nStyle visuel : {style}"
@@ -305,7 +313,7 @@ def studio_create_video():
                 config=types.GenerateContentConfig(
                     system_instruction=instructions,
                     response_mime_type="application/json",
-                    max_output_tokens=1400,
+                    max_output_tokens=1800,
                 ),
             )
         storyboard = clean_storyboard(json.loads(generated.text or "{}"))
