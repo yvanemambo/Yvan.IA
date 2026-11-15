@@ -23,6 +23,20 @@ def test_clean_storyboard_keeps_only_safe_text():
     assert len(result["scenes"]) == 3
     assert "<" not in result["scenes"][0]["title"]
     assert "Bienvenue" in result["scenes"][0]["title"]
+    assert result["scenes"][0]["visual"] == "orbit"
+    assert result["scenes"][1]["visual"] == "bars"
+
+
+def test_clean_storyboard_accepts_only_supported_visual_motifs():
+    result = clean_storyboard({
+        "title": "Campagne",
+        "scenes": [
+            {"title": "Accroche", "visual": "device"},
+            {"title": "Démonstration", "visual": "unexpected-html"},
+            {"title": "Conclusion", "visual": "burst"},
+        ],
+    })
+    assert [scene["visual"] for scene in result["scenes"]] == ["device", "bars", "burst"]
 
 
 def test_clean_storyboard_rejects_too_few_scenes():
