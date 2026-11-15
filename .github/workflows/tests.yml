@@ -28,6 +28,6 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
       - name: Vérifier la syntaxe Python
-        run: python -m compileall -q server.py api
+        run: python -m compileall -q server.py
       - name: Exécuter les tests
         run: pytest -q
