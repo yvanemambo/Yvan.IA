@@ -10,6 +10,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from flask import Flask, Response, jsonify, request, send_from_directory, stream_with_context
+from werkzeug.middleware.proxy_fix import ProxyFix
 from google import genai
 from google.genai import types
 from pypdf import PdfReader
@@ -44,7 +45,14 @@ metrics = {
 }
 
 app = Flask(__name__)
+# Render et Vercel placent un proxy de confiance devant Flask. Ne retenir
+# que l'adresse ajoutée par le proxy le plus proche, jamais la première valeur
+# X-Forwarded-For fournie potentiellement par le visiteur.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 app.config["MAX_CONTENT_LENGTH"] = 48 * 1024
+
+def client_ip():
+    return request.remote_addr or "unknown"
 
 SYSTEM = """Tu es Yvan.IA, un assistant personnel intelligent qui répond en français par défaut.
 Tu es chaleureux, précis, pédagogique et honnête. Adapte la longueur de tes réponses à la demande.
@@ -254,7 +262,7 @@ def studio_create_video():
     if not VIDEO_RENDERER_URL or not VIDEO_RENDERER_TOKEN:
         return jsonify(erreur="Le moteur vidéo GiveMotion n'est pas encore configuré sur Render."), 503
 
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    ip = client_ip()
     if video_rate_limited(ip):
         return jsonify(erreur="Limite atteinte : deux vidéos par heure pour cette adresse. Réessaie plus tard."), 429
 
