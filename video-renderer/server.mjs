@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { render, findChrome } from "givemotion";
+import { canvasForAspect, assertRenderDimensions } from "./layout.mjs";
 
 const PORT = Number(process.env.PORT || 10000);
 const TOKEN = process.env.VIDEO_RENDERER_TOKEN || "";
@@ -69,7 +70,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 function buildComposition(data) {
   const theme = palettes[data.style];
-  const sizes = data.aspect === "vertical" ? [1080, 1920] : data.aspect === "horizontal" ? [1920, 1080] : [1080, 1080];
+  const { width, height } = canvasForAspect(data.aspect);
   const sceneDuration = (data.duration + (data.scenes.length - 1) * 0.5) / data.scenes.length;
   const scenes = data.scenes.map((scene, index) => {
     const kicker = scene.kicker || data.title || "YVAN.IA STUDIO";
@@ -91,26 +92,28 @@ function buildComposition(data) {
       </section>`;
   }).join("\n");
   return `<!doctype html>
-<html lang="fr" data-width="${sizes[0]}" data-height="${sizes[1]}" data-fps="30" data-background="${theme.bg}">
+<html lang="fr" data-width="${width}" data-height="${height}" data-fps="30" data-background="${theme.bg}" data-aspect="${data.aspect}">
 <head><meta charset="utf-8"><style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
 body{background:${theme.bg};color:#fff;font-family:Inter,Arial,sans-serif}
-.scene{position:relative;width:100%;height:100%;overflow:hidden;display:grid;place-items:center;background:radial-gradient(ellipse at 75% 15%,${theme.panel},transparent 55%),linear-gradient(135deg,${theme.bg},#080a12)}
-.frame{position:relative;z-index:3;width:84%;height:84%;display:flex;flex-direction:column;justify-content:space-between}
-.topline,.bottomline{display:flex;justify-content:space-between;gap:20px;color:#ffffff88;font-size:18px;letter-spacing:.18em;font-weight:700}
-.copy{max-width:100%;padding:7% 0}
-.kicker{font-size:clamp(20px,2.8vw,34px);letter-spacing:.22em;text-transform:uppercase;color:${theme.secondary};font-weight:800;margin:0 0 38px}
-h1{font-size:clamp(70px,10vw,150px);line-height:.96;letter-spacing:-.055em;font-weight:850;margin:0;max-width:100%;overflow-wrap:anywhere}
-.subtitle{font-size:clamp(26px,3.5vw,48px);line-height:1.25;color:#e5e8f0;margin:44px 0 0;max-width:90%}
-.accent-line{width:180px;height:9px;border-radius:10px;background:linear-gradient(90deg,${theme.accent},${theme.secondary});margin-top:52px;transform-origin:left}
-.glow{position:absolute;width:58%;aspect-ratio:1;border-radius:50%;filter:blur(100px);opacity:.18}
-.glow-a{background:${theme.accent};right:-18%;top:-25%;animation:float 7s ease-in-out infinite alternate}
-.glow-b{background:${theme.secondary};left:-28%;bottom:-30%;animation:float 9s ease-in-out infinite alternate-reverse}
-.orbit{position:absolute;z-index:1;width:52%;aspect-ratio:1;border:1px solid #ffffff18;border-radius:50%;right:-20%;bottom:-24%;box-shadow:0 0 0 38px #ffffff08,0 0 0 76px #ffffff05}
+.scene{position:relative;container-type:size;width:100%;height:100%;overflow:hidden;display:grid;place-items:center;background:radial-gradient(ellipse at 75% 15%,\${theme.panel},transparent 55%),linear-gradient(135deg,\${theme.bg},#080a12)}
+.frame{position:relative;z-index:3;width:88%;height:88%;min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.topline,.bottomline{display:flex;justify-content:space-between;align-items:center;gap:2cqi;min-width:0;color:#ffffff88;font-size:clamp(10px,1.45cqi,20px);line-height:1.25;letter-spacing:.12em;font-weight:700}
+.topline span,.bottomline span{min-width:0;max-width:48%;overflow-wrap:anywhere}
+.copy{width:100%;max-width:100%;max-height:70%;min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:2cqi 0}
+.kicker{max-width:100%;font-size:clamp(12px,2.4cqi,30px);line-height:1.2;letter-spacing:.16em;text-transform:uppercase;color:\${theme.secondary};font-weight:800;margin:0 0 2.4cqh;overflow-wrap:anywhere}
+h1{width:100%;max-width:100%;max-height:3.85em;font-size:clamp(34px,min(9cqi,10cqh),142px);line-height:1.02;letter-spacing:-.045em;font-weight:850;margin:0;overflow-wrap:anywhere;word-break:normal;text-wrap:balance;overflow:hidden}
+.subtitle{width:100%;max-width:100%;max-height:3.8em;font-size:clamp(16px,min(3.4cqi,4.2cqh),48px);line-height:1.22;color:#e5e8f0;margin:2.8cqh 0 0;overflow-wrap:anywhere;text-wrap:balance;overflow:hidden}
+.accent-line{width:clamp(48px,13cqi,180px);height:clamp(4px,.7cqh,9px);flex:none;border-radius:10px;background:linear-gradient(90deg,\${theme.accent},\${theme.secondary});margin-top:3cqh;transform-origin:left}
+.glow{position:absolute;width:58%;aspect-ratio:1;border-radius:50%;filter:blur(8cqi);opacity:.18;pointer-events:none}
+.glow-a{background:\${theme.accent};right:-18%;top:-25%;animation:float 7s ease-in-out infinite alternate}
+.glow-b{background:\${theme.secondary};left:-28%;bottom:-30%;animation:float 9s ease-in-out infinite alternate-reverse}
+.orbit{position:absolute;z-index:1;width:52%;aspect-ratio:1;border:1px solid #ffffff18;border-radius:50%;right:-20%;bottom:-24%;box-shadow:0 0 0 3cqi #ffffff08,0 0 0 6cqi #ffffff05;pointer-events:none}
 @keyframes float{from{transform:translate3d(-3%,-2%,0) scale(.92)}to{transform:translate3d(4%,5%,0) scale(1.08)}}
-@media (max-aspect-ratio:1/1){.frame{width:82%;height:86%}.topline,.bottomline{font-size:14px}.kicker{font-size:26px}h1{font-size:100px}.subtitle{font-size:34px}}
 </style></head>
-<body><main data-sequence data-transition="push-left 0.5">${scenes}</main></body></html>`;
+<body><main data-sequence data-transition="push-left 0.5">${scenes}</main><script>
+(async()=>{try{await document.fonts.ready;}catch(_){}document.querySelectorAll(".scene").forEach(scene=>{const fit=el=>{if(!el)return;const base=parseFloat(getComputedStyle(el).fontSize)||32;let size=base;for(let i=0;i<18&&(el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1);i++){size*=.92;el.style.fontSize=size+"px";}};fit(scene.querySelector("h1"));fit(scene.querySelector(".subtitle"));});})();
+</script></body></html>`;
 }
 
 async function runJob(job) {
@@ -121,14 +124,20 @@ async function runJob(job) {
   const htmlPath = join(dir, "composition.html");
   const outputPath = join(dir, "yvan-ia-motion.mp4");
   await writeFile(htmlPath, buildComposition(job.storyboard), "utf8");
-  const [width, height] = job.storyboard.aspect === "vertical" ? [1080, 1920] : job.storyboard.aspect === "horizontal" ? [1920, 1080] : [1080, 1080];
+  const { width, height } = canvasForAspect(job.storyboard.aspect);
   const result = await render(htmlPath, {
     output: outputPath, quality: "standard", workers: 1, width, height, fps: 30,
     timeoutMs: 120000, hardware: false, cache: false, quiet: true,
     onProgress: (p) => { job.progress = { phase: p.phase, done: p.done || 0, total: p.total || 0, eta: p.eta ?? null }; },
   });
+  assertRenderDimensions(result, width, height);
+  const probe = spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", outputPath], { encoding: "utf8", timeout: 15000 });
+  if (probe.error || probe.status !== 0) throw new Error("Impossible de vérifier les dimensions du MP4 final.");
+  const stream = JSON.parse(probe.stdout || "{}").streams?.[0];
+  assertRenderDimensions(stream, width, height);
   const info = await stat(outputPath);
-  job.result = { duration: result.duration, width: result.width, height: result.height, bytes: info.size };
+  if (!info.size) throw new Error("Le fichier MP4 est vide.");
+  job.result = { duration: result.duration, width, height, bytes: info.size };
   job.outputPath = outputPath;
   job.status = "completed";
   job.progress = { phase: "terminé", done: result.frames, total: result.frames, eta: 0 };
