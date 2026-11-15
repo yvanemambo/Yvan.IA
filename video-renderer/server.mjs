@@ -86,7 +86,7 @@ function buildComposition(data) {
             ${subtitle ? `<p class="subtitle" data-enter="fade-up 0.7 0.8">${esc(subtitle)}</p>` : ""}
             <div class="accent-line" data-enter="scale 0.7 0.95"></div>
           </div>
-          <div class="bottomline"><span>${esc(data.title || "CRÉATION ORIGINALE")}</span><span>STUDIO CRÉATIF</span></div>
+          <div class="bottomline"><span>${esc((data.title || "CRÉATION ORIGINALE").slice(0, 36))}</span><span>STUDIO CRÉATIF</span></div>
         </div>
         <div class="orbit"></div>
       </section>`;
@@ -112,7 +112,7 @@ h1{width:100%;max-width:100%;max-height:3.85em;font-size:clamp(34px,min(9cqi,10c
 @keyframes float{from{transform:translate3d(-3%,-2%,0) scale(.92)}to{transform:translate3d(4%,5%,0) scale(1.08)}}
 </style></head>
 <body><main data-sequence data-transition="push-left 0.5">${scenes}</main><script>
-(async()=>{try{await document.fonts.ready;}catch(_){}document.querySelectorAll(".scene").forEach(scene=>{const fit=el=>{if(!el)return;const base=parseFloat(getComputedStyle(el).fontSize)||32;let size=base;for(let i=0;i<18&&(el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1);i++){size*=.92;el.style.fontSize=size+"px";}};fit(scene.querySelector("h1"));fit(scene.querySelector(".subtitle"));});})();
+(async()=>{try{await document.fonts.ready;}catch(_){}document.querySelectorAll(".scene").forEach(scene=>{const fit=el=>{if(!el)return;let size=parseFloat(getComputedStyle(el).fontSize)||32;for(let i=0;i<22&&(el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1);i++){size*=.92;el.style.fontSize=size+"px";}};const copy=scene.querySelector(".copy"),title=scene.querySelector("h1"),subtitle=scene.querySelector(".subtitle"),kicker=scene.querySelector(".kicker");fit(title);fit(subtitle);for(let i=0;i<24&&copy&&copy.scrollHeight>copy.clientHeight+1;i++){[title,subtitle,kicker].forEach(el=>{if(el){const size=parseFloat(getComputedStyle(el).fontSize)||24;el.style.fontSize=(size*.94)+"px";}});}});})();
 </script></body></html>`;
 }
 
