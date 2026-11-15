@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0815">
+<title>Studio Motion Design — Yvan.IA</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0815;--panel:#151023;--panel2:#1d1630;--line:#302545;--text:#f7f3ff;--muted:#a99dbd;--purple:#9b72f2;--good:#78d6b0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -15%,#302052 0,transparent 45%),var(--bg);color:var(--text)}
+.wrap{width:min(100% - 28px,980px);margin:auto;padding:24px 0 50px}
+header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0 22px;border-bottom:1px solid #ffffff12}
+a{color:#d9c8ff;text-decoration:none}.brand{font-weight:850;font-size:1.2rem;letter-spacing:-.04em}
+h1{font-size:clamp(2rem,5vw,3.4rem);letter-spacing:-.06em;margin:34px 0 8px}
+.lead{color:var(--muted);line-height:1.65;max-width:700px}
+.panel{margin-top:24px;padding:22px;border:1px solid var(--line);border-radius:22px;background:#151023dd;box-shadow:0 18px 60px #0003}
+label{display:block;font-weight:700;font-size:.9rem;margin:0 0 8px}
+input,textarea,select{width:100%;border:1px solid #46355f;border-radius:12px;background:#0e0a18;color:var(--text);padding:13px 14px;font:inherit;outline:none}
+textarea{min-height:115px;resize:vertical;line-height:1.5}input:focus,textarea:focus,select:focus{border-color:var(--purple);box-shadow:0 0 0 3px #8b65d71c}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.field{min-width:0}.hint{font-size:.78rem;color:var(--muted);margin-top:7px}
+button,.download{border:0;border-radius:13px;background:linear-gradient(135deg,#a27af3,#7044c5);color:white;padding:13px 18px;font:inherit;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-top:20px}
+button:disabled{opacity:.55;cursor:wait}
+.notice{margin-top:16px;padding:13px 15px;border-radius:12px;background:#211a32;color:#d9c8ff;line-height:1.5}
+.notice.error{background:#321b2b;color:#ffc0c7}.notice.good{background:#102a23;color:#a6f0d1}
+#result{margin-top:24px}video{width:100%;max-height:70vh;border-radius:16px;background:#000;margin-top:14px}
+.hidden{display:none!important}.small{font-size:.8rem;color:var(--muted)}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.panel{padding:16px}header{align-items:flex-start}.grid .field{width:100%}}
+</style>
+</head>
+<body><div class="wrap">
+<header><a class="brand" href="/">✦ Yvan.IA</a><a href="/">← Retour au chat</a></header>
+<h1>Studio Motion Design</h1>
+<p class="lead">Décris ta publicité ou ton animation. Yvan.IA prépare le storyboard et GiveMotion fabrique une vidéo MP4 avec des textes animés, des transitions et des effets graphiques. Les créations sont conçues pour les réseaux sociaux et les présentations.</p>
+<section class="panel">
+ <div class="field"><label for="access">Code d'accès au studio</label><input id="access" type="password" autocomplete="current-password" placeholder="Code privé du studio"><p class="hint">Ce code est défini par l'administrateur. Il n'est pas enregistré dans le dépôt.</p></div>
+ <div class="field" style="margin-top:18px"><label for="brief">Décris la vidéo que tu veux créer</label><textarea id="brief" maxlength="1200" placeholder="Exemple : crée une publicité dynamique pour une boutique de vêtements, avec une accroche forte, une présentation des collections et une invitation à commander."></textarea></div>
+ <div class="grid">
+  <div class="field"><label for="aspect">Format</label><select id="aspect"><option value="vertical">Vertical 9:16 — Reels / TikTok</option><option value="horizontal">Horizontal 16:9 — YouTube</option><option value="square">Carré 1:1 — Publications</option></select></div>
+  <div class="field"><label for="duration">Durée</label><select id="duration"><option value="10">10 secondes</option><option value="15" selected>15 secondes</option><option value="20">20 secondes</option></select></div>
+  <div class="field"><label for="style">Style graphique</label><select id="style"><option value="modern">Moderne</option><option value="luxury">Luxe / élégant</option><option value="bold">Énergique / audacieux</option><option value="minimal">Minimaliste</option><option value="neon">Néon / futuriste</option></select></div>
+ </div>
+ <button id="create">Créer ma vidéo MP4</button>
+ <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+</section>
+<section id="result" class="panel hidden">
+ <h2>Ta vidéo est prête !</h2><p class="small" id="meta"></p>
+ <video id="preview" controls playsinline></video>
+ <a class="download" id="download" href="#">Télécharger le MP4</a>
+</section>
+<p class="small" style="margin-top:20px">Le moteur vidéo utilise les ressources du serveur. Les exports sont temporaires et peuvent disparaître si le service redémarre.</p>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const code=$("#access"),brief=$("#brief"),button=$("#create"),notice=$("#notice"),result=$("#result");
+function show(message,type=""){notice.textContent=message;notice.className="notice"+(type?" "+type:"");}
+function authHeaders(){return {"Content-Type":"application/json","X-Studio-Code":code.value.trim()};}
+async function health(){
+ try{const r=await fetch("/studio/health",{cache:"no-store"});const d=await r.json();if(!d.configured)show(d.message+" Le studio doit être configuré sur Render et Vercel avant la première utilisation.","error");}
+ catch(_){show("Impossible de vérifier la configuration du studio.","error");}
+}
+async function create(){
+ const text=brief.value.trim();
+ if(!code.value.trim()){show("Entre le code d'accès au studio.","error");return;}
+ if(!text){show("Décris la vidéo avant de commencer.","error");return;}
+ button.disabled=true;result.classList.add("hidden");show("Yvan.IA prépare le storyboard…");
+ try{
+  const response=await fetch("/studio/videos",{method:"POST",headers:authHeaders(),body:JSON.stringify({prompt:text,aspect:$("#aspect").value,duration:Number($("#duration").value),style:$("#style").value})});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.erreur||"Impossible de démarrer la création.");
+  show("Scénario prêt. Le moteur GiveMotion prépare les images et encode le MP4…");
+  const id=data.job_id;if(!id)throw new Error("Le serveur n'a pas renvoyé d'identifiant de vidéo.");
+  let completed=false;
+  for(let attempt=0;attempt<180;attempt++){
+   await new Promise(resolve=>setTimeout(resolve,2000));
+   const statusResponse=await fetch("/studio/jobs/"+encodeURIComponent(id),{headers:{"X-Studio-Code":code.value.trim()},cache:"no-store"});
+   const status=await statusResponse.json();
+   if(!statusResponse.ok)throw new Error(status.erreur||"Impossible de suivre la création.");
+   if(status.status==="failed")throw new Error(status.error||"Le rendu vidéo a échoué.");
+   const progress=status.progress||{};
+   show(status.status==="queued"?"Ta vidéo est dans la file d'attente…":"Rendu en cours : "+(progress.phase||"préparation")+(progress.total?" — "+progress.done+"/"+progress.total+" images":""));
+   if(status.status==="completed"){
+    const videoUrl="/studio/jobs/"+encodeURIComponent(id)+"/video";
+    $("#preview").src=videoUrl;$("#download").href=videoUrl;
+    $("#meta").textContent=(status.result?.width||"")+" × "+(status.result?.height||"")+" · "+(status.result?.duration||"")+" s · MP4";
+    result.classList.remove("hidden");show("Vidéo terminée. Tu peux la regarder ou télécharger le MP4.","good");completed=true;break;
+   }
+  }
+  if(!completed)throw new Error("Le rendu prend plus de temps que prévu. Réessaie de vérifier dans quelques instants.");
+ }catch(error){show(error.message||"Une erreur est survenue.","error");}
+ finally{button.disabled=false;}
+}
+button.addEventListener("click",create);
+health();
+</script>
+</body></html>
