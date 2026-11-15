@@ -20,7 +20,8 @@ jobs:
         run: |
           node --check video-renderer/server.mjs
           node --check video-renderer/layout.mjs
-          node --test video-renderer/layout.test.mjs
+          node --check video-renderer/composition.mjs
+          node --test video-renderer/*.test.mjs
       - name: Installer Python
         uses: actions/setup-python@v5
         with:
