@@ -27,3 +27,10 @@ Après déploiement, copier l'URL HTTPS Render dans `VIDEO_RENDERER_URL` des ser
 
 ## Sécurité et limites
 Le moteur n'accepte jamais du HTML fourni par l'utilisateur. Il valide un petit storyboard JSON, échappe les textes et construit lui-même la composition. Les exports et la file de tâches sont en mémoire / dans le disque local du service ; les MP4 expirent au bout de 24 heures. Le système de fichiers d'une instance Render gratuite est éphémère et peut être effacé lors d'un redémarrage. Prévoir un stockage objet durable avant de promettre un historique permanent.
+
+
+## Qualité motion design
+
+Le moteur construit un spot animé multi-scènes : visuels vectoriels choisis par Gemini (orbites, graphiques, produit stylisé, interface mobile, formes), typographie cinétique mot par mot, mouvements de caméra, transitions directionnelles et motion blur. Avant chaque export, GiveMotion exécute un contrôle de composition et de mouvement, puis produit une planche de vérification des scènes. Les fichiers MP4 sont exportés en qualité haute et contrôlés avec FFprobe.
+
+**Limite actuelle :** GiveMotion est un moteur de motion graphics HTML/CSS/SVG ; il ne génère pas de séquences filmées photoréalistes. Pour des plans vidéo réalistes générés par IA, il faudra intégrer un fournisseur vidéo dédié, avec ses propres coûts et limites.
