@@ -15,6 +15,6 @@ COPY package.json ./
 RUN npm install --omit=dev --no-audit --no-fund \
     && npx givemotion install
 
-COPY server.mjs layout.mjs ./
+COPY server.mjs layout.mjs composition.mjs ./
 EXPOSE 10000
 CMD ["npm", "start"]
