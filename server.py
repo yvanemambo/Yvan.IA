@@ -422,7 +422,7 @@ def command():
     supplied_code = request.headers.get("X-Code", "")
     if required_code and supplied_code and not hmac.compare_digest(supplied_code, required_code):
         return jsonify(erreur="Code d’accès incorrect."), 401
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    ip = client_ip()
     if rate_limited(ip):
         return jsonify(erreur="Trop de demandes en peu de temps. Attends une minute puis réessaie."), 429
 
