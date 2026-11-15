@@ -303,7 +303,7 @@ def studio_create_video():
         storyboard = clean_storyboard(json.loads(generated.text or "{}"))
         with studio_renderer_request("/jobs", method="POST", payload={
             **storyboard, "aspect": aspect, "duration": duration, "style": style,
-        }, timeout=30) as upstream:
+        }, timeout=45) as upstream:
             result = json.loads(upstream.read().decode("utf-8"))
         return jsonify(job_id=result.get("id"), status=result.get("status", "queued")), 202
     except HTTPError as exc:
@@ -371,6 +371,7 @@ def health():
     gemini_ready = bool(os.getenv("GEMINI_API_KEY", "").strip() and MODEL)
     return jsonify(
         status="ok",
+        access_configured=bool(os.getenv("MBO_CODE", "").strip()),
         app="Yvan.IA",
         provider="Gemini",
         model=MODEL,
@@ -401,6 +402,10 @@ def admin_metrics():
 
 @app.post("/commande")
 def command():
+    required_code = os.getenv("MBO_CODE", "").strip()
+    supplied_code = request.headers.get("X-Code", "")
+    if required_code and supplied_code and not hmac.compare_digest(supplied_code, required_code):
+        return jsonify(erreur="Code d’accès incorrect."), 401
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
     if rate_limited(ip):
         return jsonify(erreur="Trop de demandes en peu de temps. Attends une minute puis réessaie."), 429
